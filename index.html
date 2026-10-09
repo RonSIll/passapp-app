@@ -52,8 +52,8 @@
     display: flex; align-items: center; justify-content: space-between; gap: 8px;
     padding: 4px 8px 4px 14px; border-bottom: 0.5px solid var(--border); flex: 0 0 auto; min-height: 52px;
   }
-  header h1 { font-size: 17px; font-weight: 700; margin: 0; }
-  header .center { flex: 1; text-align: center; font-size: 16px; font-weight: 600; min-width: 0;
+  header h1 { font-size: 21.2px; font-weight: 700; margin: 0; }
+  header .center { flex: 1; text-align: center; font-size: 20px; font-weight: 600; min-width: 0;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   header.sub { padding-left: 4px; }
   .hspacer { width: 64px; flex: 0 0 auto; }
@@ -63,13 +63,13 @@
     display: flex; align-items: center; justify-content: center; padding: 0; }
   .iconBtn svg { width: 22px; height: 22px; }
   .iconBtn.armed { background: var(--active); color: var(--active-on); }
-  .textBtn { background: none; border: none; color: var(--text); font-size: 16px; min-height: 44px; min-width: 64px; padding: 0 8px; }
+  .textBtn { background: none; border: none; color: var(--text); font-size: 20px; min-height: 44px; min-width: 64px; padding: 0 8px; }
   .textBtn.green { color: var(--active); font-weight: 600; }
   @media (prefers-color-scheme: light) { .textBtn.green { color: var(--active-dim); } }
   .textBtn:disabled { color: var(--text3); }
   .textBtn.left { text-align: left; } .textBtn.right { text-align: right; }
   .btn { min-height: 44px; border: 1px solid var(--border); background: var(--bg2); color: var(--text);
-    font-size: 15px; font-weight: 500; padding: 0 14px; }
+    font-size: 18.8px; font-weight: 500; padding: 0 14px; }
   .btn.primary { background: var(--active); color: var(--active-on); border-color: var(--active); font-weight: 600; }
   .btn.primary:disabled { opacity: 0.45; }
   .btn.full { width: 100%; }
@@ -86,26 +86,26 @@
   .bbar .btn.primary { background: var(--bg2); color: var(--text); border-color: var(--border); font-weight: 500; }
   .bbar .btn.primary:disabled { opacity: 0.45; }
   .bbar .l { grid-column: 1; } .bbar .c { grid-column: 2; } .bbar .r { grid-column: 3; }
-  .linkBtn { background: none; border: none; color: var(--text2); font-size: 15px; min-height: 44px; text-decoration: underline; }
-  a.link { color: var(--text2); font-size: 15px; display: inline-flex; align-items: center; min-height: 44px; }
+  .linkBtn { background: none; border: none; color: var(--text2); font-size: 18.8px; min-height: 44px; text-decoration: underline; }
+  a.link { color: var(--text2); font-size: 18.8px; display: inline-flex; align-items: center; min-height: 44px; }
 
   .body { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch;
     padding: 18px 16px; display: flex; flex-direction: column; gap: 14px; }
   .body.centered { justify-content: center; }
-  .appname { font-size: 28px; font-weight: 700; text-align: center; }
-  .stepLabel { font-size: 12px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.05em; }
-  h2 { font-size: 21px; font-weight: 700; margin: 0; }
-  p { margin: 0; font-size: 15px; line-height: 1.45; color: var(--text2); }
+  .appname { font-size: 35px; font-weight: 700; text-align: center; }
+  .stepLabel { font-size: 15px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.05em; }
+  h2 { font-size: 26.2px; font-weight: 700; margin: 0; }
+  p { margin: 0; font-size: 18.8px; line-height: 1.45; color: var(--text2); }
   p.strong { color: var(--text); }
-  ol.steps { margin: 0; padding-left: 22px; font-size: 16px; line-height: 2; }
+  ol.steps { margin: 0; padding-left: 22px; font-size: 20px; line-height: 2; }
   .spacer { flex: 1; }
-  .err { color: var(--red); font-size: 14px; min-height: 0; }
+  .err { color: var(--red); font-size: 17.5px; min-height: 0; }
   .err:empty { display: none; }
 
-  .field label { display: block; font-size: 12px; color: var(--text2); margin-bottom: 5px; }
+  .field label { display: block; font-size: 15px; color: var(--text2); margin-bottom: 5px; }
   .input, textarea.input {
     width: 100%; min-height: 44px; border: 1px solid var(--border); background: var(--bg);
-    color: var(--text); font: inherit; font-size: 16px; padding: 10px 12px; outline: none; border-radius: 0;
+    color: var(--text); font: inherit; font-size: 20px; padding: 10px 12px; outline: none; border-radius: 0;
   }
   textarea.input { resize: none; overflow: hidden; line-height: 1.4; }
   .input:focus { border-color: var(--text3); }
@@ -116,16 +116,16 @@
   .shake { animation: shake 0.35s; }
   @keyframes shake { 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
 
-  .keyBox { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 21px;
+  .keyBox { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 26.2px;
     text-align: center; line-height: 1.7; letter-spacing: 0.5px; padding: 18px 6px;
     border: 1px solid var(--border); background: var(--bg2); color: var(--text); word-break: break-all; }
 
   .choice { text-align: left; padding: 12px 14px; min-height: 64px; }
-  .choice b { display: block; font-size: 16px; }
-  .choice span { display: block; font-size: 13px; color: var(--text2); margin-top: 3px; font-weight: 400; }
+  .choice b { display: block; font-size: 20px; }
+  .choice span { display: block; font-size: 16.2px; color: var(--text2); margin-top: 3px; font-weight: 400; }
 
   /* List */
-  .banner { background: var(--text); color: var(--bg); padding: 12px 14px; font-size: 14px; border: none;
+  .banner { background: var(--text); color: var(--bg); padding: 12px 14px; font-size: 17.5px; border: none;
     text-align: left; width: 100%; min-height: 44px; flex: 0 0 auto; }
   #entryList { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; min-height: 0; display: flex; flex-direction: column; }
   /* margin-top:auto lets a short list hug the search bar while a long one
@@ -134,30 +134,31 @@
   .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%;
     background: none; border: none; border-top: 0.5px solid var(--border); color: var(--text);
     text-align: left; padding: 9px 16px; min-height: 58px; }
-  .row .acct { font-size: 16px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .row .user { font-size: 13px; color: var(--text2); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row .acct { font-size: 20px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row .user { font-size: 16.2px; color: var(--text2); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .row .txt { min-width: 0; flex: 1; }
   .row svg { width: 16px; height: 16px; color: var(--text3); flex: 0 0 auto; }
   .emptyState { padding: 40px 20px 20px; text-align: center; display: flex; flex-direction: column; gap: 14px; align-items: center; }
   .emptyState p { color: var(--text3); }
   #searchRow { padding: 8px 14px 6px; flex: 0 0 auto; position: relative; }
   #searchInput { width: 100%; border: 1px solid var(--border); background: var(--bg2); color: var(--text);
-    padding: 10px 44px 10px 16px; font-size: 16px; outline: none; border-radius: 999px; font-family: inherit; min-height: 44px; }
-  #searchClear { position: absolute; right: 16px; top: 8px; height: 44px; width: 40px; background: none; border: none; color: var(--text3); font-size: 16px; }
-  #syncStatus { font-size: 12px; color: var(--text3); flex: 1; text-align: center; background: none; border: none; min-height: 44px; }
+    padding: 10px 44px 10px 16px; font-size: 20px; outline: none; border-radius: 999px; font-family: inherit; min-height: 44px; }
+  #searchClear { position: absolute; right: 16px; top: 8px; height: 44px; width: 40px; background: none; border: none; color: var(--text3); font-size: 20px; }
+  #syncStatus { font-size: 15px; color: var(--text3); flex: 1; text-align: center; background: none; border: none; min-height: 44px; }
 
   /* Entry view */
   .frow { border-bottom: 0.5px solid var(--border); padding: 10px 0; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-  .frow .lab, .blockLab { font-size: 12px; color: var(--text2); }
-  .frow .val { font-size: 17px; margin-top: 3px; word-break: break-all; }
+  .frow .lab, .blockLab { font-size: 15px; color: var(--text2); }
+  .frow .val { font-size: 21.2px; margin-top: 3px; word-break: break-all; }
   .frow .txt { min-width: 0; flex: 1; }
   .dots { letter-spacing: 3px; }
+  #e-user { word-break: normal; overflow-wrap: anywhere; }
   /* Hidden password on the Edit screen uses the account screen's dot size and
      spacing (Ron, 2026-10-09); shown passwords stay monospaced. */
-  #f-pass[type="password"] { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 17px; letter-spacing: 3px; }
+  #f-pass[type="password"] { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 21.2px; letter-spacing: 3px; }
   .btns { display: flex; gap: 6px; flex: 0 0 auto; }
   .btns .btn { min-width: 64px; }
-  .notesVal { font-size: 16px; white-space: pre-wrap; word-break: break-word; margin-top: 4px; user-select: text; -webkit-user-select: text; }
+  .notesVal { font-size: 20px; white-space: pre-wrap; word-break: break-word; margin-top: 4px; user-select: text; -webkit-user-select: text; }
   .thumb { width: 100%; max-height: 50vh; object-fit: contain; background: var(--bg2); border: 1px solid var(--border); display: block; cursor: zoom-in; min-height: 60px; }
   body.veiled #s-entry .body, body.veiled #viewer { visibility: hidden; }
 
@@ -167,19 +168,19 @@
 
   /* Settings */
   .srow { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; min-height: 56px;
-    border: none; border-bottom: 0.5px solid var(--border); background: none; color: var(--text); padding: 10px 16px; text-align: left; font-size: 16px; }
-  .srow .sub { color: var(--text3); font-size: 13px; margin-top: 3px; display: block; }
+    border: none; border-bottom: 0.5px solid var(--border); background: none; color: var(--text); padding: 10px 16px; text-align: left; font-size: 20px; }
+  .srow .sub { color: var(--text3); font-size: 16.2px; margin-top: 3px; display: block; }
   .srow.red { color: var(--red); }
   .srow .chev { color: var(--text3); }
   .sblock { padding: 12px 16px; border-bottom: 0.5px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
-  .footer { text-align: center; font-size: 12px; color: var(--text3); padding: 14px; }
+  .footer { text-align: center; font-size: 15px; color: var(--text3); padding: 14px; }
 
   /* Checklist */
   .check { display: flex; gap: 12px; align-items: flex-start; padding: 10px 0; border-bottom: 0.5px solid var(--border); }
   .check input { width: 24px; height: 24px; margin: 2px 0 0; accent-color: var(--active); flex: 0 0 auto; }
-  .check label { font-size: 15px; color: var(--text); line-height: 1.4; flex: 1; }
-  .check label span { display: block; color: var(--text2); font-size: 13px; margin-top: 2px; }
-  .check a.link { font-size: 13px; min-height: 32px; }
+  .check label { font-size: 18.8px; color: var(--text); line-height: 1.4; flex: 1; }
+  .check label span { display: block; color: var(--text2); font-size: 16.2px; margin-top: 2px; }
+  .check a.link { font-size: 16.2px; min-height: 32px; }
 
   /* Progress */
   .bar { height: 6px; background: var(--bg3); width: 100%; }
@@ -187,14 +188,14 @@
 
   /* Overlays */
   #clipbar { position: absolute; left: 0; right: 0; bottom: 62px; background: var(--text); color: var(--bg);
-    display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 8px 6px 16px; font-size: 14px; z-index: 5; min-height: 52px; }
+    display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 8px 6px 16px; font-size: 17.5px; z-index: 5; min-height: 52px; }
   #clipbar .btn { background: none; color: var(--bg); border-color: var(--bg); }
   .overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.45); display: flex; align-items: flex-end; z-index: 10; }
   .card { background: var(--bg); width: 100%; padding: 20px 16px 22px; display: flex; flex-direction: column; gap: 14px; }
   #viewer { position: absolute; inset: 0; background: #000; z-index: 20; display: flex; align-items: center; justify-content: center; }
   #viewer img { max-width: 100%; max-height: 100%; object-fit: contain; }
   #toast { position: absolute; left: 50%; top: 64px; transform: translateX(-50%); background: var(--text); color: var(--bg);
-    padding: 10px 16px; font-size: 14px; z-index: 30; pointer-events: none; }
+    padding: 10px 16px; font-size: 17.5px; z-index: 30; pointer-events: none; }
 
   @media print {
     body { position: static; }
@@ -350,7 +351,7 @@
       <span class="center">Settings</span>
     </header>
     <div style="flex:1; overflow-y:auto">
-      <div class="sblock"><div style="font-size:16px">GitHub</div><div class="sub" style="color:var(--text3);font-size:13px" id="g-gh"></div>
+      <div class="sblock"><div style="font-size:20px">GitHub</div><div class="sub" style="color:var(--text3);font-size:16.2px" id="g-gh"></div>
         <button class="btn" id="g-token" style="align-self:flex-start">Replace token</button></div>
       <button class="srow" id="g-check"><span>Device checklist<span class="sub" id="g-checkSub"></span></span><span class="chev">&rsaquo;</span></button>
       <button class="srow" id="g-export"><span>Export data<span class="sub">Save every account to a plain-text file.</span></span><span class="chev">&rsaquo;</span></button>
@@ -1108,11 +1109,19 @@
   // ---------- Entry view ----------
   var viewId = null, passShown = false;
   function maskPass() { passShown = false; $('e-pass').textContent = '••••••••'; $('e-pass').className = 'val dots'; $('e-show').textContent = 'Show'; }
+  // Long usernames wrap after "@" or "." rather than mid-word.
+  function setBreakable(el, text) {
+    el.textContent = '';
+    text.split(/(?<=[@.])/).forEach(function (part, i) {
+      if (i) el.appendChild(document.createElement('wbr'));
+      el.appendChild(document.createTextNode(part));
+    });
+  }
   function openEntry(id) {
     var e = findEntry(id); if (!e) return;
     viewId = id; revokeUrls();
     $('e-title').textContent = e.account;
-    $('e-user').textContent = e.username || '';
+    setBreakable($('e-user'), e.username || '');
     $('e-userRow').hidden = !e.username;
     $('e-passRow').hidden = !e.password;
     $('e-notes').textContent = e.notes || '';
