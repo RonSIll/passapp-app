@@ -1,0 +1,9 @@
+{
+  "name": "PassApp Key Test",
+  "short_name": "Key Test",
+  "start_url": "keytest.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000"
+}
