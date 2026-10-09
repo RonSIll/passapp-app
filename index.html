@@ -60,6 +60,7 @@
   .iconBtn { background: none; border: none; color: var(--text2); min-width: 44px; min-height: 44px;
     display: flex; align-items: center; justify-content: center; padding: 0; }
   .iconBtn svg { width: 22px; height: 22px; }
+  .iconBtn.armed { background: var(--active); color: var(--active-on); }
   .textBtn { background: none; border: none; color: var(--text); font-size: 16px; min-height: 44px; min-width: 64px; padding: 0 8px; }
   .textBtn.green { color: var(--active); font-weight: 600; }
   @media (prefers-color-scheme: light) { .textBtn.green { color: var(--active-dim); } }
@@ -922,6 +923,19 @@
     var raw = normKey(el.value).slice(0, 32), g = groupKey(raw);
     if (el.value !== g) el.value = g;
   }
+  // Icon version of the two-tap pattern: the first tap highlights the icon,
+  // a second tap within 5 s fires, and anything else resets it.
+  function twoTapIcon(btn, onFire) {
+    var armed = false, timer = null;
+    function reset() { armed = false; btn.classList.remove('armed'); clearTimeout(timer); }
+    btn.addEventListener('click', function (ev) {
+      ev.stopPropagation();
+      if (!armed) { armed = true; btn.classList.add('armed'); timer = setTimeout(reset, 5000); }
+      else { reset(); onFire(); }
+    });
+    document.addEventListener('click', function (ev) { if (armed && !btn.contains(ev.target)) reset(); }, true);
+    return reset;
+  }
   // Two-tap pattern: first tap arms (label changes), second within 5 s fires.
   function twoTap(btn, armedLabel, onFire, armClass) {
     var label = null, timer = null;
@@ -1098,7 +1112,8 @@
   $('searchClear').addEventListener('click', function () { $('searchInput').value = ''; renderList(); $('searchInput').focus(); });
   $('syncStatus').addEventListener('click', function () { sync(); });
   $('addBtn').addEventListener('click', function () { openEdit(null, ''); });
-  $('l-settings').addEventListener('click', openSettings);
+  // Settings opens on a second tap within 5 seconds (Ron, 2026-10-09).
+  var resetGear = twoTapIcon($('l-settings'), openSettings);
   $('l-banner').addEventListener('click', function () {
     if (S.blocked === 'token') openToken();
     else if (S.blocked === 'keyreplaced') { $('nk-key').value = ''; setErr('nk-err'); $('nk-go').disabled = true; show('s-newkey'); }
