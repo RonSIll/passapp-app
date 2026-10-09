@@ -82,6 +82,9 @@
   .bbar { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;
     padding: 8px 14px 10px; border-top: 0.5px solid var(--border); flex: 0 0 auto; }
   .bbar .btn { width: 100%; min-width: 0; padding: 4px 6px; line-height: 1.15; white-space: normal; }
+  /* Bottom-row main actions look like Back (Ron, 2026-10-09); only Delete stays red. */
+  .bbar .btn.primary { background: var(--bg2); color: var(--text); border-color: var(--border); font-weight: 500; }
+  .bbar .btn.primary:disabled { opacity: 0.45; }
   .bbar .l { grid-column: 1; } .bbar .c { grid-column: 2; } .bbar .r { grid-column: 3; }
   .linkBtn { background: none; border: none; color: var(--text2); font-size: 15px; min-height: 44px; text-decoration: underline; }
   a.link { color: var(--text2); font-size: 15px; display: inline-flex; align-items: center; min-height: 44px; }
