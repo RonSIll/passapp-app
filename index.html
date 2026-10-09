@@ -152,6 +152,9 @@
   .frow .val { font-size: 17px; margin-top: 3px; word-break: break-all; }
   .frow .txt { min-width: 0; flex: 1; }
   .dots { letter-spacing: 3px; }
+  /* Hidden password on the Edit screen uses the account screen's dot size and
+     spacing (Ron, 2026-10-09); shown passwords stay monospaced. */
+  #f-pass[type="password"] { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 17px; letter-spacing: 3px; }
   .btns { display: flex; gap: 6px; flex: 0 0 auto; }
   .btns .btn { min-width: 64px; }
   .notesVal { font-size: 16px; white-space: pre-wrap; word-break: break-word; margin-top: 4px; user-select: text; -webkit-user-select: text; }
