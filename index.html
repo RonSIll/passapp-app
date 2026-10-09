@@ -293,7 +293,7 @@
       <input id="searchInput" type="text" placeholder="Search accounts" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
       <button id="searchClear" aria-label="Clear search" hidden>&#x2715;</button>
     </div>
-       <div class="bbar"><button class="btn primary r" id="addBtn">Add</button></div>
+       <div class="bbar"><button class="btn l" id="l-cancel" hidden>Cancel</button><button class="btn primary r" id="addBtn">Add</button></div>
   </section>
 
   <!-- 5. Entry view -->
@@ -1086,8 +1086,18 @@
     }
     el.textContent = t;
   }
-  function openList() { show('s-list'); renderList(); renderStatus(); }
+  function openList() { show('s-list'); renderList(); renderStatus(); searchCancelVis(); }
   $('searchInput').addEventListener('input', renderList);
+  // Cancel shows bottom left while the search field is active (focused or
+  // holding text). It clears the search and closes the keyboard (Ron, 2026-10-09).
+  function searchCancelVis() { $('l-cancel').hidden = !(document.activeElement === $('searchInput') || $('searchInput').value); }
+  $('searchInput').addEventListener('focus', searchCancelVis);
+  $('searchInput').addEventListener('input', searchCancelVis);
+  // Delay on blur so a tap on Cancel itself still lands before it hides.
+  $('searchInput').addEventListener('blur', function () { setTimeout(searchCancelVis, 200); });
+  $('l-cancel').addEventListener('click', function () {
+    $('searchInput').value = ''; $('searchInput').blur(); renderList(); $('l-cancel').hidden = true;
+  });
   $('searchClear').addEventListener('click', function () { $('searchInput').value = ''; renderList(); $('searchInput').focus(); });
   $('syncStatus').addEventListener('click', function () { sync(); });
   $('addBtn').addEventListener('click', function () { openEdit(null, ''); });
