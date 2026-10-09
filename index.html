@@ -350,8 +350,6 @@
       <div class="sblock"><div style="font-size:16px">GitHub</div><div class="sub" style="color:var(--text3);font-size:13px" id="g-gh"></div>
         <button class="btn" id="g-token" style="align-self:flex-start">Replace token</button></div>
       <button class="srow" id="g-check"><span>Device checklist<span class="sub" id="g-checkSub"></span></span><span class="chev">&rsaquo;</span></button>
-      <button class="srow" id="g-import"><span>Import from file<span class="sub">One-time import of your old password notes.</span></span><span class="chev">&rsaquo;</span></button>
-      <input type="file" id="g-importFile" accept=".json,application/json" hidden>
       <button class="srow" id="g-export"><span>Export data<span class="sub">Save every account to a plain-text file.</span></span><span class="chev">&rsaquo;</span></button>
       <button class="srow red" id="g-replace"><span>Replace vault key<span class="sub">Use this if a device is lost or stolen.</span></span><span class="chev">&rsaquo;</span></button>
     </div>
@@ -396,28 +394,6 @@
       <p>Pictures aren't included; accounts that have one are marked. Delete the file once you're done with it.</p>
     </div>
     <div class="bbar"><button class="btn l" id="x2-back">Back</button><button class="btn danger c" id="x2-go">Export</button></div>
-  </section>
-
-  <!-- Import -->
-  <section class="screen" id="s-import" hidden>
-    <header class="sub">
-      <span class="center">Import passwords</span>
-    </header>
-    <div class="body">
-      <p class="strong" id="i-summary"></p>
-      <p id="i-dupes"></p>
-      <p>Each entry is encrypted on this PC before it's saved. Your original notes aren't changed.</p>
-      <div class="err" id="i-err"></div>
-    </div>
-    <div class="bbar"><button class="btn l" id="i-back">Back</button><button class="btn primary r" id="i-go"></button></div>
-  </section>
-  <section class="screen" id="s-imported" hidden>
-    <div class="body centered">
-      <h2 id="d-title"></h2>
-      <p class="strong">Now delete the import file from your PC. It holds your passwords in plain text.</p>
-      <p id="d-status"></p>
-    </div>
-    <div class="bbar"><button class="btn primary r" id="d-done">Done</button></div>
   </section>
 
   <!-- 8. Progress -->
@@ -899,7 +875,7 @@
 
   // ---------- UI helpers ----------
   var SCREENS = ['s-install', 's-welcome', 's-key', 's-confirm', 's-connect', 's-add', 's-list', 's-entry', 's-edit',
-    's-settings', 's-token', 's-replace', 's-progress', 's-fail', 's-tamper', 's-newkey', 's-check', 's-import', 's-imported', 's-export'];
+    's-settings', 's-token', 's-replace', 's-progress', 's-fail', 's-tamper', 's-newkey', 's-check', 's-export'];
   var current = null;
   function show(id) {
     SCREENS.forEach(function (s) { $(s).hidden = s !== id; });
@@ -1420,79 +1396,6 @@
     setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
     done();
   }, 'armed');
-
-  // ---------- One-time import from file ----------
-  // Reads a passapp-import-1 file (built on the PC by src/tools/build_import.py),
-  // encrypts every entry on this device, and saves them all in one commit.
-  var importList = null;
-  function sameEntry(a, b) {
-    return a.account.trim().toLowerCase() === b.account.trim().toLowerCase() &&
-      (a.username || '') === (b.username || '') && (a.password || '') === (b.password || '');
-  }
-  $('g-import').addEventListener('click', function () { $('g-importFile').click(); });
-  $('g-importFile').addEventListener('change', function () {
-    var f = this.files && this.files[0]; this.value = '';
-    if (!f) return;
-    f.text().then(function (txt) {
-      var d = JSON.parse(txt);
-      if (!d || d.format !== 'passapp-import-1' || !Array.isArray(d.entries)) throw new Error('format');
-      var existing = visibleEntries();
-      var fresh = d.entries.filter(function (e) {
-        return e && typeof e.account === 'string' && e.account.trim() && !existing.some(function (x) { return sameEntry(x, e); });
-      });
-      importList = fresh;
-      var dupes = d.entries.length - fresh.length;
-      var withPw = fresh.filter(function (e) { return e.password; }).length;
-      var withImg = fresh.filter(function (e) { return e.image; }).length;
-      $('i-summary').textContent = 'Ready to import ' + fresh.length + ' entries: ' + withPw + ' with passwords, ' + withImg + ' with images.';
-      $('i-dupes').textContent = dupes ? dupes + ' entries already in PassApp were skipped.' : '';
-      $('i-go').textContent = 'Import ' + fresh.length + ' entries';
-      $('i-go').disabled = !fresh.length;
-      setErr('i-err'); resetImport();
-      show('s-import');
-    }).catch(function () { importList = null; toast("That file isn't a PassApp import file."); });
-  });
-  $('i-back').addEventListener('click', function () { importList = null; openSettings(); });
-  var resetImport = twoTap($('i-go'), 'Confirm', function () { runImport(); });
-  function runImport() {
-    var list = importList; importList = null;
-    if (!list || !list.length) return;
-    $('p-title').textContent = 'Importing your passwords';
-    show('s-progress'); progress(0, list.length);
-    var made = [], done = 0, now = Date.now();
-    return list.reduce(function (p, e) {
-      return p.then(function () {
-        var entry = { id: newId(), account: e.account.trim(), username: e.username || '', password: e.password || '',
-          notes: e.notes || '', imageId: null, updatedAt: now };
-        if (!e.image) return entry;
-        return resizeImage(new Blob([b64d(e.image.b64)], { type: e.image.type || 'image/png' })).then(function (bytes) {
-          var imgId = newId();
-          return seal(S.keys.encKey, bytes, imagePath(imgId), S.keyId).then(function (packed) {
-            S.pendingImgs[imgId] = packed; entry.imageId = imgId; return entry;
-          });
-        }).catch(function () { return entry; });
-      }).then(function (entry) { made.push(entry); done++; progress(done, list.length); });
-    }, Promise.resolve()).then(function () {
-      made.forEach(function (e) { S.entries.push(e); });
-      S.dirty = true; S.rev++;
-      return saveLocal();
-    }).then(function () {
-      $('p-title').textContent = 'Saving to GitHub';
-      progress(0, 1);
-      S.onBlob = function (d, t) { progress(d, t); };
-      return sync();
-    }).then(function () {
-      S.onBlob = null;
-      $('p-title').textContent = 'Re-encrypting your vault';
-      $('d-title').textContent = 'Imported ' + made.length + ' entries.';
-      $('d-status').textContent = S.dirty ? 'Some changes are still saved only on this PC. PassApp finishes saving the next time it can reach GitHub.' : '';
-      show('s-imported');
-    }).catch(function () {
-      S.onBlob = null; $('p-title').textContent = 'Re-encrypting your vault';
-      show('s-fail');
-    });
-  }
-  $('d-done').addEventListener('click', openList);
 
   // ---------- Vault key replaced on another device ----------
   $('nk-back').addEventListener('click', openList);
