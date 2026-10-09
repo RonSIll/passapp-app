@@ -2,7 +2,7 @@
 // Network first, so a fresh copy always wins when online; the cache is the
 // offline fallback. Only same-origin GETs inside this app's scope are
 // touched; GitHub API calls pass straight through.
-var CACHE = 'passapp-v1';
+var CACHE = 'passapp-v2';
 var FILES = ['./', './index.html', './manifest.webmanifest', './icon-180.png'];
 
 self.addEventListener('install', function (e) {
