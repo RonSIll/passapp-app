@@ -77,6 +77,12 @@
   .btn.danger.armed { background: var(--red); color: #fff; font-weight: 600; }
   .btn.copied { color: var(--active-dim); border-color: var(--active); }
   @media (prefers-color-scheme: dark) { .btn.copied { color: var(--active); } }
+  /* Bottom button row: Back left, Delete (or another risky action) center,
+     main action right. Three equal columns; a hidden button leaves its slot. */
+  .bbar { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;
+    padding: 8px 14px 10px; border-top: 0.5px solid var(--border); flex: 0 0 auto; }
+  .bbar .btn { width: 100%; min-width: 0; padding: 4px 6px; line-height: 1.15; white-space: normal; }
+  .bbar .l { grid-column: 1; } .bbar .c { grid-column: 2; } .bbar .r { grid-column: 3; }
   .linkBtn { background: none; border: none; color: var(--text2); font-size: 15px; min-height: 44px; text-decoration: underline; }
   a.link { color: var(--text2); font-size: 15px; display: inline-flex; align-items: center; min-height: 44px; }
 
@@ -135,10 +141,7 @@
   #searchInput { width: 100%; border: 1px solid var(--border); background: var(--bg2); color: var(--text);
     padding: 10px 44px 10px 16px; font-size: 16px; outline: none; border-radius: 999px; font-family: inherit; min-height: 44px; }
   #searchClear { position: absolute; right: 16px; top: 8px; height: 44px; width: 40px; background: none; border: none; color: var(--text3); font-size: 16px; }
-  #bottomRow { display: flex; align-items: center; justify-content: space-between; padding: 0 8px 6px; flex: 0 0 auto; gap: 6px; }
   #syncStatus { font-size: 12px; color: var(--text3); flex: 1; text-align: center; background: none; border: none; min-height: 44px; }
-  #addBtn { width: 44px; height: 44px; background: var(--active); color: var(--active-on); border: none;
-    font-size: 28px; line-height: 1; display: flex; align-items: center; justify-content: center; }
 
   /* Entry view */
   .frow { border-bottom: 0.5px solid var(--border); padding: 10px 0; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
@@ -177,7 +180,7 @@
   .bar div { height: 100%; width: 0; background: var(--active); transition: width 0.2s; }
 
   /* Overlays */
-  #clipbar { position: absolute; left: 0; right: 0; bottom: 0; background: var(--text); color: var(--bg);
+  #clipbar { position: absolute; left: 0; right: 0; bottom: 62px; background: var(--text); color: var(--bg);
     display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 8px 6px 16px; font-size: 14px; z-index: 5; min-height: 52px; }
   #clipbar .btn { background: none; color: var(--bg); border-color: var(--bg); }
   .overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.45); display: flex; align-items: flex-end; z-index: 10; }
@@ -230,9 +233,8 @@
       <div class="keyBox" id="k-key"></div>
       <p>Write it on paper, or print it from your PC. Don't save it as a PDF or keep it on your phone. Anyone with this key and access to your GitHub account can read every password.</p>
       <button class="btn full" id="k-print">Print</button>
-      <div class="spacer"></div>
-      <button class="btn primary full" id="k-next">I wrote it down</button>
     </div>
+    <div class="bbar"><button class="btn primary r" id="k-next">I wrote it down</button></div>
   </section>
 
   <!-- 2. Setup step 2 -->
@@ -243,10 +245,8 @@
       <p>Type the last four characters of your recovery key.</p>
       <div class="field"><input class="input mono" id="c-input" maxlength="4" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" inputmode="text"></div>
       <div class="err" id="c-err"></div>
-      <button class="linkBtn" id="c-back">Show key again</button>
-      <div class="spacer"></div>
-      <button class="btn primary full" id="c-next" disabled>Next</button>
     </div>
+    <div class="bbar"><button class="btn l" id="c-back">Back</button><button class="btn primary r" id="c-next" disabled>Next</button></div>
   </section>
 
   <!-- 2. Setup step 3 -->
@@ -260,16 +260,14 @@
       <div class="field"><label for="n-token">Token</label>
         <input class="input mono" id="n-token" placeholder="Paste token here" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></div>
       <div class="err" id="n-err"></div>
-      <div class="spacer"></div>
-      <button class="btn primary full" id="n-finish" disabled>Finish</button>
     </div>
+    <div class="bbar"><button class="btn l" id="n-back">Back</button><button class="btn primary r" id="n-finish" disabled>Finish</button></div>
   </section>
 
   <!-- 3. Add this device -->
   <section class="screen" id="s-add" hidden>
     <header class="sub">
-      <button class="iconBtn" id="a-back" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-      <span class="center">Add this device</span><span class="hspacer"></span>
+      <span class="center">Add this device</span>
     </header>
     <div class="body">
       <p>You'll need your recovery key and a new token for this device. On GitHub, name the token <b class="tokName"></b>, with access to passapp-data only and Contents set to Read and write.</p>
@@ -279,34 +277,30 @@
       <div class="field"><label for="a-key">Recovery key</label>
         <input class="input mono rkInput" id="a-key" placeholder="XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false"></div>
       <div class="err" id="a-err"></div>
-      <div class="spacer"></div>
-      <button class="btn primary full" id="a-add" disabled>Add</button>
     </div>
+    <div class="bbar"><button class="btn l" id="a-back">Back</button><button class="btn primary r" id="a-add" disabled>Add</button></div>
   </section>
 
   <!-- 4. List -->
   <section class="screen" id="s-list" hidden>
-    <header><h1>PassApp</h1></header>
+    <header><h1>PassApp</h1>
+      <button id="syncStatus"></button>
+      <button class="iconBtn" id="l-settings" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+    </header>
     <button class="banner" id="l-banner" hidden></button>
     <div id="entryList"><div id="entryStack"></div></div>
     <div id="searchRow">
       <input id="searchInput" type="text" placeholder="Search accounts" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
       <button id="searchClear" aria-label="Clear search" hidden>&#x2715;</button>
     </div>
-    <div id="bottomRow">
-      <button class="iconBtn" id="l-settings" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
-      <button id="syncStatus"></button>
-      <button id="addBtn" aria-label="New entry">+</button>
-    </div>
+       <div class="bbar"><button class="btn primary r" id="addBtn">Add</button></div>
   </section>
 
   <!-- 5. Entry view -->
   <section class="screen" id="s-entry" hidden>
     <header class="sub">
-      <button class="iconBtn" id="e-back" aria-label="Back to list"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
       <span class="center" id="e-title"></span>
-      <button class="textBtn right" id="e-edit">Edit</button>
-    </header>
+          </header>
     <div class="body" style="gap:0; padding-top:6px">
       <div class="frow" id="e-userRow"><div class="txt"><div class="lab">Username</div><div class="val" id="e-user"></div></div>
         <div class="btns"><button class="btn" id="e-copyUser">Copy</button></div></div>
@@ -316,14 +310,13 @@
       <div id="e-imgRow" style="padding-top:12px"><div class="blockLab" style="margin-bottom:6px">Image</div><img class="thumb" id="e-img" alt="Image"></div>
       <div style="height:70px; flex:0 0 auto"></div>
     </div>
+    <div class="bbar"><button class="btn l" id="e-back">Back</button><button class="btn danger c" id="e-delete">Delete</button><button class="btn primary r" id="e-edit">Edit</button></div>
   </section>
 
   <!-- 6. Edit form -->
   <section class="screen" id="s-edit" hidden>
     <header class="sub">
-      <button class="textBtn left" id="f-cancel">Cancel</button>
       <span class="center" id="f-title">Edit</span>
-      <button class="textBtn green right" id="f-save" disabled>Save</button>
     </header>
     <div class="body">
       <div class="field"><label for="f-account">Account</label>
@@ -341,16 +334,14 @@
         <input type="file" id="f-file" accept="image/*" hidden>
       </div>
       <div class="err" id="f-err"></div>
-      <div class="spacer" style="min-height:24px"></div>
-      <button class="btn danger full" id="f-delete" type="button" hidden>Delete</button>
     </div>
+    <div class="bbar"><button class="btn l" id="f-cancel">Cancel</button><button class="btn danger c" id="f-delete" type="button" hidden>Delete</button><button class="btn primary r" id="f-save" disabled>Save</button></div>
   </section>
 
   <!-- 7. Settings -->
   <section class="screen" id="s-settings" hidden>
     <header class="sub">
-      <button class="iconBtn" id="g-back" aria-label="Back to list"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-      <span class="center">Settings</span><span class="hspacer"></span>
+      <span class="center">Settings</span>
     </header>
     <div style="flex:1; overflow-y:auto">
       <div class="sblock"><div style="font-size:16px">GitHub</div><div class="sub" style="color:var(--text3);font-size:13px" id="g-gh"></div>
@@ -361,13 +352,13 @@
       <button class="srow red" id="g-replace"><span>Replace vault key<span class="sub">Use this if a device is lost or stolen.</span></span><span class="chev">&rsaquo;</span></button>
     </div>
     <div class="footer" id="g-version"></div>
+    <div class="bbar"><button class="btn l" id="g-back">Back</button></div>
   </section>
 
   <!-- Replace token -->
   <section class="screen" id="s-token" hidden>
     <header class="sub">
-      <button class="iconBtn" id="t-back" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-      <span class="center">Replace token</span><span class="hspacer"></span>
+      <span class="center">Replace token</span>
     </header>
     <div class="body">
       <p>On GitHub, create a new token named <b class="tokName"></b>, with access to passapp-data only and Contents set to Read and write. Then paste it here.</p>
@@ -375,49 +366,41 @@
       <div class="field"><label for="t-token">Token</label>
         <input class="input mono" id="t-token" placeholder="Paste token here" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></div>
       <div class="err" id="t-err"></div>
-      <div class="spacer"></div>
-      <button class="btn primary full" id="t-save" disabled>Save token</button>
     </div>
+    <div class="bbar"><button class="btn l" id="t-back">Back</button><button class="btn primary r" id="t-save" disabled>Save token</button></div>
   </section>
 
   <!-- 8. Replace vault key -->
   <section class="screen" id="s-replace" hidden>
-    <header class="sub">
-      <button class="iconBtn" id="r-back" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-      <span class="center"></span><span class="hspacer"></span>
-    </header>
     <div class="body">
       <h2>Lost a device?</h2>
       <p>Replacing the vault key re-encrypts every password and gives you a new recovery key. Your other devices will each need that new key once.</p>
       <p>Then do two more things. On GitHub, delete the lost device's token, named PassApp iPhone or PassApp PC. And if anyone may have opened the lost device, change those passwords at each website, since a lost device keeps what it already had.</p>
       <div class="err" id="r-err"></div>
-      <div class="spacer"></div>
-      <button class="btn danger full" id="r-go">Replace vault key</button>
     </div>
+    <div class="bbar"><button class="btn l" id="r-back">Back</button><button class="btn danger c" id="r-go">Replace key</button></div>
   </section>
 
   <!-- Import -->
   <section class="screen" id="s-import" hidden>
     <header class="sub">
-      <button class="iconBtn" id="i-back" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-      <span class="center">Import passwords</span><span class="hspacer"></span>
+      <span class="center">Import passwords</span>
     </header>
     <div class="body">
       <p class="strong" id="i-summary"></p>
       <p id="i-dupes"></p>
       <p>Each entry is encrypted on this PC before it's saved. Your original notes aren't changed.</p>
       <div class="err" id="i-err"></div>
-      <div class="spacer"></div>
-      <button class="btn primary full" id="i-go"></button>
     </div>
+    <div class="bbar"><button class="btn l" id="i-back">Back</button><button class="btn primary r" id="i-go"></button></div>
   </section>
   <section class="screen" id="s-imported" hidden>
     <div class="body centered">
       <h2 id="d-title"></h2>
       <p class="strong">Now delete the import file from your PC. It holds your passwords in plain text.</p>
       <p id="d-status"></p>
-      <button class="btn primary full" id="d-done">Done</button>
     </div>
+    <div class="bbar"><button class="btn primary r" id="d-done">Done</button></div>
   </section>
 
   <!-- 8. Progress -->
@@ -434,9 +417,8 @@
   <section class="screen" id="s-fail" hidden>
     <div class="body centered">
       <p class="strong">Nothing changed. Your vault is just as it was.</p>
-      <button class="btn primary full" id="x-retry">Try again</button>
-      <button class="linkBtn" id="x-cancel">Back to list</button>
     </div>
+    <div class="bbar"><button class="btn l" id="x-cancel">Back</button><button class="btn primary r" id="x-retry">Try again</button></div>
   </section>
 
   <!-- 9. Tamper -->
@@ -444,25 +426,20 @@
     <div class="body centered">
       <h2>Sync stopped</h2>
       <p>Your vault settings on GitHub don't match what PassApp expects, so someone may have changed them. Your passwords on this <span class="devName"></span> are still here, and PassApp won't sync until this is sorted out.</p>
-      <button class="btn primary full" id="m-ok">OK</button>
     </div>
+    <div class="bbar"><button class="btn primary r" id="m-ok">OK</button></div>
   </section>
 
   <!-- 9. New recovery key after another device replaced it -->
   <section class="screen" id="s-newkey" hidden>
-    <header class="sub">
-      <button class="iconBtn" id="nk-back" aria-label="Back to list"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-      <span class="center"></span><span class="hspacer"></span>
-    </header>
     <div class="body">
       <h2>Enter your new recovery key</h2>
       <p>Any changes you made on this <span class="devName"></span> are kept. They'll save once you're back in.</p>
       <div class="field"><label for="nk-key">Recovery key</label>
         <input class="input mono rkInput" id="nk-key" placeholder="XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false"></div>
       <div class="err" id="nk-err"></div>
-      <div class="spacer"></div>
-      <button class="btn primary full" id="nk-go" disabled>Continue</button>
     </div>
+    <div class="bbar"><button class="btn l" id="nk-back">Back</button><button class="btn primary r" id="nk-go" disabled>Continue</button></div>
   </section>
 
   <!-- 10. Device checklist -->
@@ -471,9 +448,8 @@
       <h2>Protect your devices</h2>
       <p>PassApp has no password of its own. Your devices are the lock.</p>
       <div id="checkList"></div>
-      <div class="spacer"></div>
-      <button class="btn primary full" id="ch-done">Done</button>
     </div>
+    <div class="bbar"><button class="btn primary r" id="ch-done">Done</button></div>
   </section>
 
   <!-- Overlays -->
@@ -990,6 +966,7 @@
     if (keyMode === 'setup') { $('n-token').value = ''; setErr('n-err'); $('n-finish').disabled = true; show('s-connect'); }
     else { pending = null; toast('Done'); openList(); }
   });
+  $('n-back').addEventListener('click', function () { show('s-confirm'); });
   $('n-token').addEventListener('input', function () { $('n-finish').disabled = !this.value.trim(); setErr('n-err'); });
   $('n-finish').addEventListener('click', function () {
     var token = $('n-token').value.trim(), btn = this;
@@ -1135,6 +1112,8 @@
     $('e-notes').textContent = e.notes || '';
     $('e-notesRow').hidden = !e.notes;
     $('e-edit').hidden = S.blocked === 'keyreplaced';
+    $('e-delete').hidden = S.blocked === 'keyreplaced';
+    if (resetEDelete) resetEDelete();
     maskPass();
     var img = $('e-img'); img.removeAttribute('src');
     $('e-imgRow').hidden = !e.imageId;
@@ -1149,6 +1128,11 @@
     else { passShown = true; $('e-pass').textContent = e.password; $('e-pass').className = 'val mono'; $('e-show').textContent = 'Hide'; }
   });
   $('e-edit').addEventListener('click', function () { openEdit(viewId); });
+  // Delete on the account screen: two taps, same as on the Edit screen.
+  var resetEDelete = twoTap($('e-delete'), 'Confirm', function () {
+    var id = viewId;
+    putEntry({ id: id, deleted: true, updatedAt: Date.now() }).then(function () { viewId = null; revokeUrls(); openList(); });
+  }, 'armed');
   $('e-img').addEventListener('click', function () { if ($('e-img').src) { $('viewerImg').src = $('e-img').src; $('viewer').hidden = false; } });
   $('viewer').addEventListener('click', function () { $('viewer').hidden = true; $('viewerImg').removeAttribute('src'); });
 
