@@ -693,7 +693,7 @@
   var S = {
     keys: null, keyId: null, token: null, header: null, entries: [],
     baseSha: null, baseDate: null, files: {}, dirty: false, rev: 0, pendingImgs: {},
-    lastSync: 0, offline: false, syncing: false, syncAgain: false,
+    lastSync: 0, offline: false, syncing: false, syncAgain: false, staleCount: 0,
     blocked: null, remoteHeader: null, checklist: [false, false, false, false, false],
     checklistSeen: false, copyNoteSeen: false
   };
@@ -769,7 +769,8 @@
         if (rs.commitSha === S.baseSha) return null;
         // GitHub can briefly report the previous commit right after a save.
         // A commit older than our own base is a stale read: retry shortly.
-        if (S.baseDate && rs.date && new Date(rs.date) < new Date(S.baseDate)) throw new GhError('stale', 0);
+        // After five tries, accept it as a real rollback of the repo.
+        if (S.baseDate && rs.date && new Date(rs.date) < new Date(S.baseDate) && S.staleCount < 5) throw new GhError('stale', 0);
         return getBlob(rs.files['vault.json']).then(function (hb) {
           var hdr;
           try { hdr = JSON.parse(td.decode(hb)); } catch (e) { throw new GhError('tamper', 0); }
@@ -787,7 +788,7 @@
         });
       }).then(function () {
         if (!S.dirty) {
-          S.baseSha = rs.commitSha; S.baseDate = rs.date || S.baseDate; S.files = rs.files; S.lastSync = Date.now(); S.offline = false;
+          S.baseSha = rs.commitSha; S.baseDate = rs.date || S.baseDate; S.files = rs.files; S.lastSync = Date.now(); S.offline = false; S.staleCount = 0;
           return saveLocal();
         }
         var changes = {}, referenced = {};
@@ -808,7 +809,7 @@
           var still = {};
           Object.keys(S.pendingImgs).forEach(function (id) { if (!changes['images/' + id + '.enc'] && S.rev !== startRev) still[id] = S.pendingImgs[id]; });
           S.pendingImgs = still;
-          S.baseSha = nc.commitSha; S.baseDate = nc.date || S.baseDate; S.files = nc.files; S.lastSync = Date.now(); S.offline = false;
+          S.baseSha = nc.commitSha; S.baseDate = nc.date || S.baseDate; S.files = nc.files; S.lastSync = Date.now(); S.offline = false; S.staleCount = 0;
           S.dirty = S.rev !== startRev;
           return saveLocal();
         }).catch(function (e) {
@@ -818,7 +819,7 @@
       });
     }
     return round().catch(function (e) {
-      if (e.kind === 'stale') setTimeout(sync, 2000);
+      if (e.kind === 'stale') { S.staleCount++; setTimeout(sync, 2000); }
       else if (e.kind === 'offline') S.offline = true;
       else if (e.kind === 'token') S.blocked = 'token';
       else if (e.kind === 'keyreplaced') S.blocked = 'keyreplaced';
@@ -950,7 +951,7 @@
       afterJoin();
     }).catch(function (e) {
       btn.disabled = false;
-      if (e.message === 'exists') setErr('n-err', 'A PassApp vault already exists in passapp-data. Go back and choose Add this device.');
+      if (e.message === 'exists') setErr('n-err', 'This passapp-data repo already holds a vault. Go back and choose Add this device.');
       else setErr('n-err', "GitHub didn't accept that token. Check its name and access, then try again.");
     });
   });
@@ -1040,7 +1041,8 @@
   }
   function renderStatus() {
     var el = $('syncStatus'), t;
-    if (S.syncing && S.dirty) t = 'Saving...';
+    if (S.blocked === 'tamper') t = 'Sync stopped';
+    else if (S.syncing && S.dirty) t = 'Saving...';
     else if (S.offline) t = 'Offline. Changes are saved on this ' + DEVICE + '.';
     else if (!S.lastSync) t = '';
     else {
