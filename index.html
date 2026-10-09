@@ -1467,6 +1467,32 @@
   window.addEventListener('pagehide', function () { document.body.classList.add('veiled'); });
   window.addEventListener('online', function () { sync(); });
 
+  // ---------- One-time data cleanups ----------
+  // Usernames imported from the old notes app kept Markdown links, such as
+  // [a@b.com](mailto:a@b.com). Keep only the visible text (Ron, 2026-10-09).
+  // Runs once per device, after a successful sync, so it starts from the
+  // newest data; the first device to run it saves the fixes for both.
+  function stripLinks(v) { return String(v || '').replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').trim(); }
+  function runCleanups() {
+    return iget('cleanup-usernames-v1').then(function (done) {
+      if (done || !S.keys || S.blocked || S.offline || S.syncing || !S.lastSync) return;
+      var fixed = 0, now = Date.now();
+      S.entries.forEach(function (e, i) {
+        if (e.deleted || !e.username) return;
+        var clean = stripLinks(e.username);
+        if (clean !== e.username) { S.entries[i] = Object.assign({}, e, { username: clean, updatedAt: now }); fixed++; }
+      });
+      var finish = function () { return iset('cleanup-usernames-v1', true); };
+      if (!fixed) return finish();
+      S.dirty = true; S.rev++;
+      return saveLocal().then(finish).then(function () {
+        renderList();
+        toast('Cleaned up ' + fixed + (fixed === 1 ? ' username.' : ' usernames.'));
+        return sync();
+      });
+    });
+  }
+
   // ---------- Start ----------
   if ('serviceWorker' in navigator && location.protocol === 'https:') {
     navigator.serviceWorker.register('sw.js').catch(function () {});
@@ -1475,7 +1501,7 @@
   loadLocal().catch(function () { return false; }).then(function (ok) {
     if (!ok) { show('s-welcome'); return; }
     openList();
-    sync();
+    sync().then(runCleanups);
   });
 })();
 </script>
