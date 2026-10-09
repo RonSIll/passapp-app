@@ -1251,12 +1251,23 @@
     var id = editId;
     putEntry({ id: id, deleted: true, updatedAt: Date.now() }).then(function () { editId = null; openList(); });
   }, 'armed');
+  // Every add or edit stamps "Updated on Month d, yyyy" in Notes: an existing
+  // line is rewritten in place, otherwise one is added at the end (Ron, 2026-10-09).
+  var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  var UPDATED_RE = /^[ \t]*[-*]?[ \t]*\**updated[ \t]*(on)?[ \t]*:?\**[ \t]*:?[ \t]*(January|February|March|April|May|June|July|August|September|October|November|December)[ \t]+\d{1,2},[ \t]*\d{4}[ \t]*\**[ \t]*$/im;
+  function updatedLine(d) { return 'Updated on ' + MONTHS[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear(); }
+  function stampUpdated(notes, d) {
+    var line = updatedLine(d || new Date());
+    if (UPDATED_RE.test(notes)) return notes.replace(UPDATED_RE, line);
+    var t = notes.replace(/\s+$/, '');
+    return t ? t + '\n' + line : line;
+  }
   $('f-save').addEventListener('click', function () {
     var account = $('f-account').value.trim(); if (!account) return;
     var old = editId ? findEntry(editId) : null;
     var e = {
       id: editId || newId(), account: account, username: $('f-user').value, password: $('f-pass').value,
-      notes: $('f-notes').value, imageId: old ? old.imageId : null, updatedAt: Date.now()
+      notes: stampUpdated($('f-notes').value), imageId: old ? old.imageId : null, updatedAt: Date.now()
     };
     var p = Promise.resolve();
     if (editImg.mode === 'remove') e.imageId = null;
