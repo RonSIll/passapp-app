@@ -1470,9 +1470,30 @@
     if (ev.key !== 'Escape' || ev.isComposing) return;
     if (!$('viewer').hidden) { $('viewer').click(); ev.preventDefault(); return; }
     if (!$('copyNote').hidden) { $('copyNoteOk').click(); ev.preventDefault(); return; }
+    // Edit screen on the PC: Escape discards at once, no second press (Ron, 2026-10-09).
+    if (current === 's-edit' && !IS_IOS) { ev.preventDefault(); if (resetCancel) resetCancel(); leaveEdit(); return; }
     var sc = current && $(current);
     var btn = sc && sc.querySelector('.bbar .l');
     if (btn && !btn.hidden && !btn.disabled) { ev.preventDefault(); btn.click(); }
+  });
+
+  // Edit screen on the PC: Enter saves from any box, Notes included; Ctrl+Enter
+  // starts a new line in Notes. The iPhone keeps its normal return key, since
+  // it's the only way to start a new line there (Ron, 2026-10-09).
+  document.addEventListener('keydown', function (ev) {
+    if (ev.key !== 'Enter' || ev.isComposing || IS_IOS || current !== 's-edit') return;
+    var t = ev.target;
+    if (ev.ctrlKey || ev.metaKey) {
+      if (t === $('f-notes')) {
+        ev.preventDefault();
+        t.setRangeText('\n', t.selectionStart, t.selectionEnd, 'end');
+        t.dispatchEvent(new Event('input'));
+      }
+      return;
+    }
+    if (ev.shiftKey || ev.altKey) return;
+    ev.preventDefault();
+    if (!$('f-save').disabled) $('f-save').click();
   });
 
   // ---------- Background and lifecycle ----------
