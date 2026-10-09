@@ -349,6 +349,7 @@
       <button class="srow" id="g-check"><span>Device checklist<span class="sub" id="g-checkSub"></span></span><span class="chev">&rsaquo;</span></button>
       <button class="srow" id="g-import"><span>Import from file<span class="sub">One-time import of your old password notes.</span></span><span class="chev">&rsaquo;</span></button>
       <input type="file" id="g-importFile" accept=".json,application/json" hidden>
+      <button class="srow" id="g-export"><span>Export data<span class="sub">Save every account to a plain-text file.</span></span><span class="chev">&rsaquo;</span></button>
       <button class="srow red" id="g-replace"><span>Replace vault key<span class="sub">Use this if a device is lost or stolen.</span></span><span class="chev">&rsaquo;</span></button>
     </div>
     <div class="footer" id="g-version"></div>
@@ -379,6 +380,19 @@
       <div class="err" id="r-err"></div>
     </div>
     <div class="bbar"><button class="btn l" id="r-back">Back</button><button class="btn danger c" id="r-go">Replace key</button></div>
+  </section>
+
+  <!-- Export -->
+  <section class="screen" id="s-export" hidden>
+    <header class="sub">
+      <span class="center">Export data</span>
+    </header>
+    <div class="body">
+      <p class="strong" id="x2-summary"></p>
+      <p>This saves every account, with its password, to a text file on this <span class="devName"></span>. Anyone who opens that file can read your passwords.</p>
+      <p>Pictures aren't included; accounts that have one are marked. Delete the file once you're done with it.</p>
+    </div>
+    <div class="bbar"><button class="btn l" id="x2-back">Back</button><button class="btn danger c" id="x2-go">Export</button></div>
   </section>
 
   <!-- Import -->
@@ -882,7 +896,7 @@
 
   // ---------- UI helpers ----------
   var SCREENS = ['s-install', 's-welcome', 's-key', 's-confirm', 's-connect', 's-add', 's-list', 's-entry', 's-edit',
-    's-settings', 's-token', 's-replace', 's-progress', 's-fail', 's-tamper', 's-newkey', 's-check', 's-import', 's-imported'];
+    's-settings', 's-token', 's-replace', 's-progress', 's-fail', 's-tamper', 's-newkey', 's-check', 's-import', 's-imported', 's-export'];
   var current = null;
   function show(id) {
     SCREENS.forEach(function (s) { $(s).hidden = s !== id; });
@@ -1361,6 +1375,48 @@
       showKeyScreen();
     }).catch(function () { show('s-fail'); });
   }
+
+  // ---------- Export to a plain-text file ----------
+  function exportText() {
+    var now = new Date(), list = visibleEntries(), out = [];
+    out.push('PassApp export, ' + MONTHS[now.getMonth()] + ' ' + now.getDate() + ', ' + now.getFullYear());
+    out.push(list.length + (list.length === 1 ? ' account' : ' accounts'));
+    list.forEach(function (e) {
+      out.push('');
+      out.push('Account: ' + e.account);
+      out.push('Username: ' + (e.username || ''));
+      out.push('Password: ' + (e.password || ''));
+      if (e.notes && e.notes.trim()) {
+        out.push('Notes:');
+        e.notes.replace(/\r/g, '').split('\n').forEach(function (l) { out.push('  ' + l); });
+      }
+      if (e.imageId) out.push('Image: yes (not included)');
+    });
+    return out.join('\r\n') + '\r\n';
+  }
+  function exportName() {
+    var d = new Date();
+    return 'PassApp export ' + d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2) + '.txt';
+  }
+  $('g-export').addEventListener('click', function () {
+    var n = visibleEntries().length;
+    $('x2-summary').textContent = 'Ready to export ' + n + (n === 1 ? ' account.' : ' accounts.');
+    resetExport(); show('s-export');
+  });
+  $('x2-back').addEventListener('click', openSettings);
+  // iPhone saves through the share sheet (Save to Files); the PC downloads directly.
+  var resetExport = twoTap($('x2-go'), 'Confirm', function () {
+    var file = new File([exportText()], exportName(), { type: 'text/plain' });
+    var done = function () { toast('Export saved. Delete it when you\'re done.'); };
+    if (IS_IOS && navigator.canShare && navigator.canShare({ files: [file] })) {
+      navigator.share({ files: [file] }).then(done).catch(function () {});
+      return;
+    }
+    var url = URL.createObjectURL(file), a = document.createElement('a');
+    a.href = url; a.download = file.name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
+    done();
+  }, 'armed');
 
   // ---------- One-time import from file ----------
   // Reads a passapp-import-1 file (built on the PC by src/tools/build_import.py),
