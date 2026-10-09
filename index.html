@@ -1,0 +1,1379 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' blob: data:; connect-src https://api.github.com; manifest-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="PassApp">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<title>PassApp</title>
+<style>
+  :root {
+    --bg: #ffffff; --bg2: #f4f4f6; --bg3: #e6e6ea; --text: #1c1c1e; --text2: #6b6b70;
+    --text3: #a0a0a5; --border: #e3e3e6; --red: #ff3b30;
+    --active: #84cc16; --active-on: #1c1c1e; --active-dim: #5c8a10;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #000000; --bg2: #1c1c1e; --bg3: #131315; --text: #f5f5f7; --text2: #98989d;
+      --text3: #6b6b70; --border: #2c2c2e; --red: #ff453a;
+      --active: #a6e22e; --active-on: #1c1c1e; --active-dim: #7ea621;
+    }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { height: 100%; overscroll-behavior: none; background: var(--bg); }
+  /* iOS ignores the manifest's orientation lock for home-screen web apps,
+     so this counter-rotates the page back to portrait, same as PaperFind.
+     Scoped to touch-primary devices so a resized PC window is unaffected. */
+  @media screen and (orientation: landscape) and (hover: none) and (pointer: coarse) {
+    html {
+      transform: rotate(-90deg); transform-origin: left top;
+      width: 100vh; height: 100vw; overflow: hidden; position: absolute; top: 100%; left: 0;
+    }
+  }
+  body {
+    margin: 0; height: 100vh; height: 100dvh; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    position: fixed; inset: 0; overscroll-behavior: none;
+    padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);
+  }
+  #app { height: 100%; max-width: 480px; margin: 0 auto; display: flex; flex-direction: column; position: relative; }
+  @media (min-width: 520px) { #app { border-left: 0.5px solid var(--border); border-right: 0.5px solid var(--border); } }
+  .screen { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+  .screen[hidden], [hidden] { display: none !important; }
+
+  header {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 4px 8px 4px 14px; border-bottom: 0.5px solid var(--border); flex: 0 0 auto; min-height: 52px;
+  }
+  header h1 { font-size: 17px; font-weight: 700; margin: 0; }
+  header .center { flex: 1; text-align: center; font-size: 16px; font-weight: 600; min-width: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  header.sub { padding-left: 4px; }
+  .hspacer { width: 64px; flex: 0 0 auto; }
+
+  button { font-family: inherit; cursor: pointer; }
+  .iconBtn { background: none; border: none; color: var(--text2); min-width: 44px; min-height: 44px;
+    display: flex; align-items: center; justify-content: center; padding: 0; }
+  .iconBtn svg { width: 22px; height: 22px; }
+  .textBtn { background: none; border: none; color: var(--text); font-size: 16px; min-height: 44px; min-width: 64px; padding: 0 8px; }
+  .textBtn.green { color: var(--active); font-weight: 600; }
+  @media (prefers-color-scheme: light) { .textBtn.green { color: var(--active-dim); } }
+  .textBtn:disabled { color: var(--text3); }
+  .textBtn.left { text-align: left; } .textBtn.right { text-align: right; }
+  .btn { min-height: 44px; border: 1px solid var(--border); background: var(--bg2); color: var(--text);
+    font-size: 15px; font-weight: 500; padding: 0 14px; }
+  .btn.primary { background: var(--active); color: var(--active-on); border-color: var(--active); font-weight: 600; }
+  .btn.primary:disabled { opacity: 0.45; }
+  .btn.full { width: 100%; }
+  .btn.danger { background: none; color: var(--red); border-color: var(--red); }
+  .btn.danger.armed { background: var(--red); color: #fff; font-weight: 600; }
+  .btn.copied { color: var(--active-dim); border-color: var(--active); }
+  @media (prefers-color-scheme: dark) { .btn.copied { color: var(--active); } }
+  .linkBtn { background: none; border: none; color: var(--text2); font-size: 15px; min-height: 44px; text-decoration: underline; }
+  a.link { color: var(--text2); font-size: 15px; display: inline-flex; align-items: center; min-height: 44px; }
+
+  .body { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    padding: 18px 16px; display: flex; flex-direction: column; gap: 14px; }
+  .body.centered { justify-content: center; }
+  .appname { font-size: 28px; font-weight: 700; text-align: center; }
+  .stepLabel { font-size: 12px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.05em; }
+  h2 { font-size: 21px; font-weight: 700; margin: 0; }
+  p { margin: 0; font-size: 15px; line-height: 1.45; color: var(--text2); }
+  p.strong { color: var(--text); }
+  ol.steps { margin: 0; padding-left: 22px; font-size: 16px; line-height: 2; }
+  .spacer { flex: 1; }
+  .err { color: var(--red); font-size: 14px; min-height: 0; }
+  .err:empty { display: none; }
+
+  .field label { display: block; font-size: 12px; color: var(--text2); margin-bottom: 5px; }
+  .input, textarea.input {
+    width: 100%; min-height: 44px; border: 1px solid var(--border); background: var(--bg);
+    color: var(--text); font: inherit; font-size: 16px; padding: 10px 12px; outline: none; border-radius: 0;
+  }
+  textarea.input { resize: none; overflow: hidden; line-height: 1.4; }
+  .input:focus { border-color: var(--text3); }
+  .inputWrap { display: flex; }
+  .inputWrap .input { flex: 1; min-width: 0; }
+  .inputWrap .btn { border-left: none; flex: 0 0 auto; min-width: 64px; }
+  .mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+  .shake { animation: shake 0.35s; }
+  @keyframes shake { 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
+
+  .keyBox { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 21px;
+    text-align: center; line-height: 1.7; letter-spacing: 0.5px; padding: 18px 6px;
+    border: 1px solid var(--border); background: var(--bg2); color: var(--text); word-break: break-all; }
+
+  .choice { text-align: left; padding: 12px 14px; min-height: 64px; }
+  .choice b { display: block; font-size: 16px; }
+  .choice span { display: block; font-size: 13px; color: var(--text2); margin-top: 3px; font-weight: 400; }
+
+  /* List */
+  .banner { background: var(--text); color: var(--bg); padding: 12px 14px; font-size: 14px; border: none;
+    text-align: left; width: 100%; min-height: 44px; flex: 0 0 auto; }
+  #entryList { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; min-height: 0; display: flex; flex-direction: column; }
+  /* margin-top:auto lets a short list hug the search bar while a long one
+     still scrolls normally from the top (same fix PaperFind documents). */
+  #entryStack { margin-top: auto; }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%;
+    background: none; border: none; border-top: 0.5px solid var(--border); color: var(--text);
+    text-align: left; padding: 9px 16px; min-height: 58px; }
+  .row .acct { font-size: 16px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row .user { font-size: 13px; color: var(--text2); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row .txt { min-width: 0; flex: 1; }
+  .row svg { width: 16px; height: 16px; color: var(--text3); flex: 0 0 auto; }
+  .emptyState { padding: 40px 20px 20px; text-align: center; display: flex; flex-direction: column; gap: 14px; align-items: center; }
+  .emptyState p { color: var(--text3); }
+  #searchRow { padding: 8px 14px 6px; flex: 0 0 auto; position: relative; }
+  #searchInput { width: 100%; border: 1px solid var(--border); background: var(--bg2); color: var(--text);
+    padding: 10px 44px 10px 16px; font-size: 16px; outline: none; border-radius: 999px; font-family: inherit; min-height: 44px; }
+  #searchClear { position: absolute; right: 16px; top: 8px; height: 44px; width: 40px; background: none; border: none; color: var(--text3); font-size: 16px; }
+  #bottomRow { display: flex; align-items: center; justify-content: space-between; padding: 0 8px 6px; flex: 0 0 auto; gap: 6px; }
+  #syncStatus { font-size: 12px; color: var(--text3); flex: 1; text-align: center; background: none; border: none; min-height: 44px; }
+  #addBtn { width: 44px; height: 44px; background: var(--active); color: var(--active-on); border: none;
+    font-size: 28px; line-height: 1; display: flex; align-items: center; justify-content: center; }
+
+  /* Entry view */
+  .frow { border-bottom: 0.5px solid var(--border); padding: 10px 0; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .frow .lab, .blockLab { font-size: 12px; color: var(--text2); }
+  .frow .val { font-size: 17px; margin-top: 3px; word-break: break-all; }
+  .frow .txt { min-width: 0; flex: 1; }
+  .dots { letter-spacing: 3px; }
+  .btns { display: flex; gap: 6px; flex: 0 0 auto; }
+  .btns .btn { min-width: 64px; }
+  .notesVal { font-size: 16px; white-space: pre-wrap; word-break: break-word; margin-top: 4px; user-select: text; -webkit-user-select: text; }
+  .thumb { width: 100%; max-height: 50vh; object-fit: contain; background: var(--bg2); border: 1px solid var(--border); display: block; cursor: zoom-in; min-height: 60px; }
+  body.veiled #s-entry .body, body.veiled #viewer { visibility: hidden; }
+
+  /* Edit */
+  .imgEdit { display: flex; gap: 10px; align-items: center; }
+  .imgEdit img { width: 80px; height: 64px; object-fit: cover; border: 1px solid var(--border); background: var(--bg2); }
+
+  /* Settings */
+  .srow { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; min-height: 56px;
+    border: none; border-bottom: 0.5px solid var(--border); background: none; color: var(--text); padding: 10px 16px; text-align: left; font-size: 16px; }
+  .srow .sub { color: var(--text3); font-size: 13px; margin-top: 3px; display: block; }
+  .srow.red { color: var(--red); }
+  .srow .chev { color: var(--text3); }
+  .sblock { padding: 12px 16px; border-bottom: 0.5px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
+  .footer { text-align: center; font-size: 12px; color: var(--text3); padding: 14px; }
+
+  /* Checklist */
+  .check { display: flex; gap: 12px; align-items: flex-start; padding: 10px 0; border-bottom: 0.5px solid var(--border); }
+  .check input { width: 24px; height: 24px; margin: 2px 0 0; accent-color: var(--active); flex: 0 0 auto; }
+  .check label { font-size: 15px; color: var(--text); line-height: 1.4; flex: 1; }
+  .check label span { display: block; color: var(--text2); font-size: 13px; margin-top: 2px; }
+  .check a.link { font-size: 13px; min-height: 32px; }
+
+  /* Progress */
+  .bar { height: 6px; background: var(--bg3); width: 100%; }
+  .bar div { height: 100%; width: 0; background: var(--active); transition: width 0.2s; }
+
+  /* Overlays */
+  #clipbar { position: absolute; left: 0; right: 0; bottom: 0; background: var(--text); color: var(--bg);
+    display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 8px 6px 16px; font-size: 14px; z-index: 5; min-height: 52px; }
+  #clipbar .btn { background: none; color: var(--bg); border-color: var(--bg); }
+  .overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.45); display: flex; align-items: flex-end; z-index: 10; }
+  .card { background: var(--bg); width: 100%; padding: 20px 16px 22px; display: flex; flex-direction: column; gap: 14px; }
+  #viewer { position: absolute; inset: 0; background: #000; z-index: 20; display: flex; align-items: center; justify-content: center; }
+  #viewer img { max-width: 100%; max-height: 100%; object-fit: contain; }
+  #toast { position: absolute; left: 50%; top: 64px; transform: translateX(-50%); background: var(--text); color: var(--bg);
+    padding: 10px 16px; font-size: 14px; z-index: 30; pointer-events: none; }
+
+  @media print {
+    body { position: static; }
+    body * { visibility: hidden !important; }
+    #printKey, #printKey * { visibility: visible !important; }
+    #printKey { position: absolute; left: 0; top: 0; width: 100%; padding: 40px; color: #000; }
+    #printKey .keyBox { background: #fff; color: #000; border: 1px solid #000; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- 1. Install prompt -->
+  <section class="screen" id="s-install" hidden>
+    <div class="body centered">
+      <div class="appname">PassApp</div>
+      <p>Add PassApp to your Home Screen first. Safari erases a website's data after a week without a visit, and that data includes your key.</p>
+      <ol class="steps">
+        <li>Tap Share at the bottom of Safari.</li>
+        <li>Tap Add to Home Screen, then Add.</li>
+        <li>Open PassApp from its new icon.</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- 3. Welcome -->
+  <section class="screen" id="s-welcome" hidden>
+    <div class="body centered">
+      <div class="appname">Welcome to PassApp</div>
+      <button class="btn full choice" id="w-setup"><b>Set up PassApp</b><span>First device only.</span></button>
+      <button class="btn full choice" id="w-add"><b>Add this device</b><span>PassApp is already set up somewhere else.</span></button>
+    </div>
+  </section>
+
+  <!-- 2. Setup step 1 / rotation new key -->
+  <section class="screen" id="s-key" hidden>
+    <div class="body" id="printKey">
+      <div class="stepLabel" id="k-step">Step 1 of 3</div>
+      <h2 id="k-title">Your recovery key</h2>
+      <p>This key adds PassApp to a new phone or PC. Lose every device without it, and your passwords are gone for good.</p>
+      <div class="keyBox" id="k-key"></div>
+      <p>Write it on paper, or print it from your PC. Don't save it as a PDF or keep it on your phone. Anyone with this key and access to your GitHub account can read every password.</p>
+      <button class="btn full" id="k-print">Print</button>
+      <div class="spacer"></div>
+      <button class="btn primary full" id="k-next">I wrote it down</button>
+    </div>
+  </section>
+
+  <!-- 2. Setup step 2 -->
+  <section class="screen" id="s-confirm" hidden>
+    <div class="body">
+      <div class="stepLabel" id="c-step">Step 2 of 3</div>
+      <h2>Check your copy</h2>
+      <p>Type the last four characters of your recovery key.</p>
+      <div class="field"><input class="input mono" id="c-input" maxlength="4" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" inputmode="text"></div>
+      <div class="err" id="c-err"></div>
+      <button class="linkBtn" id="c-back">Show key again</button>
+      <div class="spacer"></div>
+      <button class="btn primary full" id="c-next" disabled>Next</button>
+    </div>
+  </section>
+
+  <!-- 2. Setup step 3 -->
+  <section class="screen" id="s-connect" hidden>
+    <div class="body">
+      <div class="stepLabel">Step 3 of 3</div>
+      <h2>Connect to GitHub</h2>
+      <p>PassApp keeps your scrambled passwords in your private passapp-data repo. This device needs its own token to reach it.</p>
+      <p>On GitHub, name the token <b class="tokName"></b>. Give it access to passapp-data only, with Contents set to Read and write.</p>
+      <a class="link tokLink" target="_blank" rel="noopener noreferrer" href="https://github.com/settings/personal-access-tokens/new">Open GitHub's token page</a>
+      <div class="field"><label for="n-token">Token</label>
+        <input class="input mono" id="n-token" placeholder="Paste token here" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></div>
+      <div class="err" id="n-err"></div>
+      <div class="spacer"></div>
+      <button class="btn primary full" id="n-finish" disabled>Finish</button>
+    </div>
+  </section>
+
+  <!-- 3. Add this device -->
+  <section class="screen" id="s-add" hidden>
+    <header class="sub">
+      <button class="iconBtn" id="a-back" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <span class="center">Add this device</span><span class="hspacer"></span>
+    </header>
+    <div class="body">
+      <p>You'll need your recovery key and a new token for this device. On GitHub, name the token <b class="tokName"></b>, with access to passapp-data only and Contents set to Read and write.</p>
+      <a class="link tokLink" target="_blank" rel="noopener noreferrer" href="https://github.com/settings/personal-access-tokens/new">Open GitHub's token page</a>
+      <div class="field"><label for="a-token">Token</label>
+        <input class="input mono" id="a-token" placeholder="Paste token here" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></div>
+      <div class="field"><label for="a-key">Recovery key</label>
+        <input class="input mono rkInput" id="a-key" placeholder="XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false"></div>
+      <div class="err" id="a-err"></div>
+      <div class="spacer"></div>
+      <button class="btn primary full" id="a-add" disabled>Add</button>
+    </div>
+  </section>
+
+  <!-- 4. List -->
+  <section class="screen" id="s-list" hidden>
+    <header><h1>PassApp</h1></header>
+    <button class="banner" id="l-banner" hidden></button>
+    <div id="entryList"><div id="entryStack"></div></div>
+    <div id="searchRow">
+      <input id="searchInput" type="text" placeholder="Search accounts" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
+      <button id="searchClear" aria-label="Clear search" hidden>&#x2715;</button>
+    </div>
+    <div id="bottomRow">
+      <button class="iconBtn" id="l-settings" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+      <button id="syncStatus"></button>
+      <button id="addBtn" aria-label="New entry">+</button>
+    </div>
+  </section>
+
+  <!-- 5. Entry view -->
+  <section class="screen" id="s-entry" hidden>
+    <header class="sub">
+      <button class="iconBtn" id="e-back" aria-label="Back to list"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <span class="center" id="e-title"></span>
+      <button class="textBtn right" id="e-edit">Edit</button>
+    </header>
+    <div class="body" style="gap:0; padding-top:6px">
+      <div class="frow" id="e-userRow"><div class="txt"><div class="lab">Username</div><div class="val" id="e-user"></div></div>
+        <div class="btns"><button class="btn" id="e-copyUser">Copy</button></div></div>
+      <div class="frow" id="e-passRow"><div class="txt"><div class="lab">Password</div><div class="val dots" id="e-pass">&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;</div></div>
+        <div class="btns"><button class="btn" id="e-show">Show</button><button class="btn" id="e-copyPass">Copy</button></div></div>
+      <div class="frow" id="e-notesRow" style="display:block"><div class="lab">Notes</div><div class="notesVal" id="e-notes"></div></div>
+      <div id="e-imgRow" style="padding-top:12px"><div class="blockLab" style="margin-bottom:6px">Image</div><img class="thumb" id="e-img" alt="Image"></div>
+      <div style="height:70px; flex:0 0 auto"></div>
+    </div>
+  </section>
+
+  <!-- 6. Edit form -->
+  <section class="screen" id="s-edit" hidden>
+    <header class="sub">
+      <button class="textBtn left" id="f-cancel">Cancel</button>
+      <span class="center" id="f-title">Edit</span>
+      <button class="textBtn green right" id="f-save" disabled>Save</button>
+    </header>
+    <div class="body">
+      <div class="field"><label for="f-account">Account</label>
+        <input class="input" id="f-account" placeholder="Amazon, Chase Bank..." autocomplete="off"></div>
+      <div class="field"><label for="f-user">Username</label>
+        <input class="input" id="f-user" placeholder="Email or user name" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></div>
+      <div class="field"><label for="f-pass">Password</label>
+        <div class="inputWrap"><input class="input mono" id="f-pass" type="password" placeholder="Password" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+        <button class="btn" id="f-show" type="button">Show</button></div></div>
+      <div class="field"><label for="f-notes">Notes</label>
+        <textarea class="input" id="f-notes" rows="2" placeholder="Account numbers, security questions, anything else" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea></div>
+      <div class="field"><label>Image</label>
+        <div class="imgEdit" id="f-imgNone"><button class="btn" id="f-addImg" type="button">Add image</button></div>
+        <div class="imgEdit" id="f-imgSome" hidden><img id="f-imgThumb" alt="Image"><button class="btn" id="f-replImg" type="button">Replace</button><button class="btn" id="f-remImg" type="button">Remove</button></div>
+        <input type="file" id="f-file" accept="image/*" hidden>
+      </div>
+      <div class="err" id="f-err"></div>
+      <div class="spacer" style="min-height:24px"></div>
+      <button class="btn danger full" id="f-delete" type="button" hidden>Delete</button>
+    </div>
+  </section>
+
+  <!-- 7. Settings -->
+  <section class="screen" id="s-settings" hidden>
+    <header class="sub">
+      <button class="iconBtn" id="g-back" aria-label="Back to list"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <span class="center">Settings</span><span class="hspacer"></span>
+    </header>
+    <div style="flex:1; overflow-y:auto">
+      <div class="sblock"><div style="font-size:16px">GitHub</div><div class="sub" style="color:var(--text3);font-size:13px" id="g-gh"></div>
+        <button class="btn" id="g-token" style="align-self:flex-start">Replace token</button></div>
+      <button class="srow" id="g-check"><span>Device checklist<span class="sub" id="g-checkSub"></span></span><span class="chev">&rsaquo;</span></button>
+      <button class="srow red" id="g-replace"><span>Replace vault key<span class="sub">Use this if a device is lost or stolen.</span></span><span class="chev">&rsaquo;</span></button>
+    </div>
+    <div class="footer" id="g-version"></div>
+  </section>
+
+  <!-- Replace token -->
+  <section class="screen" id="s-token" hidden>
+    <header class="sub">
+      <button class="iconBtn" id="t-back" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <span class="center">Replace token</span><span class="hspacer"></span>
+    </header>
+    <div class="body">
+      <p>On GitHub, create a new token named <b class="tokName"></b>, with access to passapp-data only and Contents set to Read and write. Then paste it here.</p>
+      <a class="link tokLink" target="_blank" rel="noopener noreferrer" href="https://github.com/settings/personal-access-tokens/new">Open GitHub's token page</a>
+      <div class="field"><label for="t-token">Token</label>
+        <input class="input mono" id="t-token" placeholder="Paste token here" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></div>
+      <div class="err" id="t-err"></div>
+      <div class="spacer"></div>
+      <button class="btn primary full" id="t-save" disabled>Save token</button>
+    </div>
+  </section>
+
+  <!-- 8. Replace vault key -->
+  <section class="screen" id="s-replace" hidden>
+    <header class="sub">
+      <button class="iconBtn" id="r-back" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <span class="center"></span><span class="hspacer"></span>
+    </header>
+    <div class="body">
+      <h2>Lost a device?</h2>
+      <p>Replacing the vault key re-encrypts every password and gives you a new recovery key. Your other devices will each need that new key once.</p>
+      <p>Then do two more things. On GitHub, delete the lost device's token, named PassApp iPhone or PassApp PC. And if anyone may have opened the lost device, change those passwords at each website, since a lost device keeps what it already had.</p>
+      <div class="err" id="r-err"></div>
+      <div class="spacer"></div>
+      <button class="btn danger full" id="r-go">Replace vault key</button>
+    </div>
+  </section>
+
+  <!-- 8. Progress -->
+  <section class="screen" id="s-progress" hidden>
+    <div class="body centered">
+      <h2 id="p-title">Re-encrypting your vault</h2>
+      <div class="bar"><div id="p-bar"></div></div>
+      <p id="p-count"></p>
+      <p>Keep PassApp open until this finishes.</p>
+    </div>
+  </section>
+
+  <!-- 8. Failure -->
+  <section class="screen" id="s-fail" hidden>
+    <div class="body centered">
+      <p class="strong">Nothing changed. Your vault is just as it was.</p>
+      <button class="btn primary full" id="x-retry">Try again</button>
+      <button class="linkBtn" id="x-cancel">Back to list</button>
+    </div>
+  </section>
+
+  <!-- 9. Tamper -->
+  <section class="screen" id="s-tamper" hidden>
+    <div class="body centered">
+      <h2>Sync stopped</h2>
+      <p>Your vault settings on GitHub don't match what PassApp expects, so someone may have changed them. Your passwords on this <span class="devName"></span> are still here, and PassApp won't sync until this is sorted out.</p>
+      <button class="btn primary full" id="m-ok">OK</button>
+    </div>
+  </section>
+
+  <!-- 9. New recovery key after another device replaced it -->
+  <section class="screen" id="s-newkey" hidden>
+    <header class="sub">
+      <button class="iconBtn" id="nk-back" aria-label="Back to list"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <span class="center"></span><span class="hspacer"></span>
+    </header>
+    <div class="body">
+      <h2>Enter your new recovery key</h2>
+      <p>Any changes you made on this <span class="devName"></span> are kept. They'll save once you're back in.</p>
+      <div class="field"><label for="nk-key">Recovery key</label>
+        <input class="input mono rkInput" id="nk-key" placeholder="XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false"></div>
+      <div class="err" id="nk-err"></div>
+      <div class="spacer"></div>
+      <button class="btn primary full" id="nk-go" disabled>Continue</button>
+    </div>
+  </section>
+
+  <!-- 10. Device checklist -->
+  <section class="screen" id="s-check" hidden>
+    <div class="body">
+      <h2>Protect your devices</h2>
+      <p>PassApp has no password of its own. Your devices are the lock.</p>
+      <div id="checkList"></div>
+      <div class="spacer"></div>
+      <button class="btn primary full" id="ch-done">Done</button>
+    </div>
+  </section>
+
+  <!-- Overlays -->
+  <div id="clipbar" hidden><span id="clipText"></span><button class="btn" id="clipClear">Clear</button></div>
+  <div class="overlay" id="copyNote" hidden>
+    <div class="card">
+      <h2>About copying</h2>
+      <p id="copyNoteText"></p>
+      <button class="btn primary full" id="copyNoteOk">Got it</button>
+    </div>
+  </div>
+  <div id="viewer" hidden><img id="viewerImg" alt="Image"></div>
+  <div id="toast" hidden></div>
+</div>
+
+<script>
+'use strict';
+(function () {
+  // ---------- Constants ----------
+  var VERSION = '1.0';
+  var OWNER = 'RonSIll', REPO = 'passapp-data', BRANCH = 'main', FORMAT = 1;
+  var API = 'https://api.github.com';
+  var IS_IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  var STANDALONE = navigator.standalone === true ||
+    (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+  var DEVICE = IS_IOS ? 'iPhone' : 'PC';
+  var TOKEN_NAME = 'PassApp ' + DEVICE;
+  var B32 = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  var te = new TextEncoder(), td = new TextDecoder();
+  var $ = function (id) { return document.getElementById(id); };
+
+  // ---------- Bytes ----------
+  function rand(n) { return crypto.getRandomValues(new Uint8Array(n)); }
+  function hex(b) { return Array.prototype.map.call(b, function (x) { return ('0' + x.toString(16)).slice(-2); }).join(''); }
+  function b64e(bytes) {
+    var s = '', CH = 0x8000;
+    for (var i = 0; i < bytes.length; i += CH) s += String.fromCharCode.apply(null, bytes.subarray(i, i + CH));
+    return btoa(s);
+  }
+  function b64d(str) {
+    var s = atob(String(str).replace(/\s+/g, '')), out = new Uint8Array(s.length);
+    for (var i = 0; i < s.length; i++) out[i] = s.charCodeAt(i);
+    return out;
+  }
+  function concat(a, b) { var o = new Uint8Array(a.length + b.length); o.set(a, 0); o.set(b, a.length); return o; }
+  function newId() { return hex(rand(12)); }
+
+  // Recovery key: 20 random bytes as 32 base-32 characters (no I, O, 0, 1).
+  function b32encode(bytes) {
+    var bits = 0, val = 0, out = '';
+    for (var i = 0; i < bytes.length; i++) {
+      val = (val << 8) | bytes[i]; bits += 8;
+      while (bits >= 5) { out += B32[(val >>> (bits - 5)) & 31]; bits -= 5; }
+    }
+    if (bits > 0) out += B32[(val << (5 - bits)) & 31];
+    return out;
+  }
+  function b32decode(str) {
+    var clean = normKey(str);
+    if (clean.length !== 32) return null;
+    var bits = 0, val = 0, out = [];
+    for (var i = 0; i < clean.length; i++) {
+      var idx = B32.indexOf(clean[i]);
+      if (idx < 0) return null;
+      val = ((val << 5) | idx) & 0xffff; bits += 5;
+      if (bits >= 8) { out.push((val >>> (bits - 8)) & 255); bits -= 8; }
+    }
+    return new Uint8Array(out);
+  }
+  function normKey(s) { return String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); }
+  function groupKey(s) { return (s.match(/.{1,4}/g) || []).join('-'); }
+
+  // ---------- Crypto ----------
+  // A 32-byte vault secret is the "vault key" of the design. HKDF turns it
+  // into the AES-GCM data key and the HMAC header key; both are stored on
+  // the device as non-extractable CryptoKeys and the secret is discarded.
+  function hkdfBase(raw) { return crypto.subtle.importKey('raw', raw, 'HKDF', false, ['deriveKey']); }
+  function hkdfParams(info, salt) { return { name: 'HKDF', hash: 'SHA-256', salt: salt || new Uint8Array(32), info: te.encode(info) }; }
+  function deriveKeys(secret) {
+    return hkdfBase(secret).then(function (base) {
+      return Promise.all([
+        crypto.subtle.deriveKey(hkdfParams('PassApp data v1'), base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']),
+        crypto.subtle.deriveKey(hkdfParams('PassApp header v1'), base, { name: 'HMAC', hash: 'SHA-256', length: 256 }, false, ['sign', 'verify'])
+      ]);
+    }).then(function (k) { return { encKey: k[0], macKey: k[1] }; });
+  }
+  function recoveryKek(rkBytes, salt) {
+    return hkdfBase(rkBytes).then(function (base) {
+      return crypto.subtle.deriveKey(hkdfParams('PassApp recovery wrap v1', salt), base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+    });
+  }
+  function aad(path, keyId) { return te.encode(path + '|' + FORMAT + '|' + keyId); }
+  function seal(key, bytes, path, keyId) {
+    var iv = rand(12);
+    return crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv, additionalData: aad(path, keyId) }, key, bytes)
+      .then(function (ct) { return concat(iv, new Uint8Array(ct)); });
+  }
+  function unseal(key, packed, path, keyId) {
+    return crypto.subtle.decrypt({ name: 'AES-GCM', iv: packed.subarray(0, 12), additionalData: aad(path, keyId) }, key, packed.subarray(12))
+      .then(function (pt) { return new Uint8Array(pt); });
+  }
+  function headerBody(h) { return te.encode(JSON.stringify({ format: h.format, keyId: h.keyId, salt: h.salt, wrapped: h.wrapped })); }
+  function signHeader(h, macKey) {
+    return crypto.subtle.sign('HMAC', macKey, headerBody(h)).then(function (sig) { h.hmac = b64e(new Uint8Array(sig)); return h; });
+  }
+  function verifyHeader(h, macKey) {
+    try { return crypto.subtle.verify('HMAC', macKey, b64d(h.hmac), headerBody(h)); }
+    catch (e) { return Promise.resolve(false); }
+  }
+  // Builds a fresh vault: secret, recovery key, keys, and signed header.
+  function makeVault() {
+    var secret = rand(32), rk = rand(20), salt = rand(16), keyId = hex(rand(8)), keys;
+    return deriveKeys(secret).then(function (k) {
+      keys = k;
+      return recoveryKek(rk, salt);
+    }).then(function (kek) {
+      return seal(kek, secret, 'vault.json#wrap', keyId);
+    }).then(function (wrapped) {
+      secret.fill(0);
+      return signHeader({ format: FORMAT, keyId: keyId, salt: b64e(salt), wrapped: b64e(wrapped) }, keys.macKey);
+    }).then(function (header) {
+      return { keys: keys, header: header, keyId: keyId, recovery: b32encode(rk) };
+    });
+  }
+  // Opens a header with a typed recovery key. Rejects with 'badkey' or 'tamper'.
+  function openVault(header, recoveryText) {
+    var rk = b32decode(recoveryText);
+    if (!rk) return Promise.reject(new Error('badkey'));
+    if (header.format !== FORMAT) return Promise.reject(new Error('tamper'));
+    var keys;
+    return recoveryKek(rk, b64d(header.salt)).then(function (kek) {
+      return unseal(kek, b64d(header.wrapped), 'vault.json#wrap', header.keyId)
+        .catch(function () { throw new Error('badkey'); });
+    }).then(function (secret) {
+      var p = deriveKeys(secret);
+      secret.fill(0);
+      return p;
+    }).then(function (k) {
+      keys = k;
+      return verifyHeader(header, keys.macKey);
+    }).then(function (ok) {
+      if (!ok) throw new Error('tamper');
+      return keys;
+    });
+  }
+
+  // ---------- Local storage (IndexedDB) ----------
+  var dbp = null;
+  function db() {
+    if (!dbp) dbp = new Promise(function (res, rej) {
+      var r = indexedDB.open('passapp', 1);
+      r.onupgradeneeded = function () { r.result.createObjectStore('kv'); };
+      r.onsuccess = function () { res(r.result); };
+      r.onerror = function () { rej(r.error); };
+    });
+    return dbp;
+  }
+  function idb(mode, fn) {
+    return db().then(function (d) {
+      return new Promise(function (res, rej) {
+        var t = d.transaction('kv', mode), st = t.objectStore('kv'), out;
+        var r = fn(st);
+        if (r && 'onsuccess' in r) r.onsuccess = function () { out = r.result; };
+        t.oncomplete = function () { res(out); };
+        t.onerror = function () { rej(t.error); };
+        t.onabort = function () { rej(t.error); };
+      });
+    });
+  }
+  function iget(k) { return idb('readonly', function (s) { return s.get(k); }); }
+  function iset(k, v) { return idb('readwrite', function (s) { s.put(v, k); }); }
+  function isetMany(obj) { return idb('readwrite', function (s) { Object.keys(obj).forEach(function (k) { s.put(obj[k], k); }); }); }
+  function idelPrefix(prefix) {
+    return idb('readwrite', function (s) {
+      var r = s.openCursor();
+      r.onsuccess = function () {
+        var c = r.result;
+        if (!c) return;
+        if (String(c.key).indexOf(prefix) === 0) c.delete();
+        c.continue();
+      };
+    });
+  }
+
+  // ---------- GitHub (Git Data API) ----------
+  function GhError(kind, status) { this.kind = kind; this.status = status; this.message = kind + ' ' + status; }
+  function gh(path, opts, token) {
+    opts = opts || {};
+    var headers = { 'Authorization': 'Bearer ' + (token || S.token), 'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' };
+    if (opts.body) headers['Content-Type'] = 'application/json';
+    return fetch(API + '/repos/' + OWNER + '/' + REPO + path, {
+      method: opts.method || 'GET', headers: headers, cache: 'no-store',
+      body: opts.body ? JSON.stringify(opts.body) : undefined
+    }).catch(function () { throw new GhError('offline', 0); }).then(function (r) {
+      if (r.status === 401 || r.status === 403 || r.status === 404) throw new GhError('token', r.status);
+      if (!r.ok) throw new GhError('http', r.status);
+      return r.json();
+    });
+  }
+  function remoteState(token) {
+    var st = {};
+    return gh('/git/ref/heads/' + BRANCH, null, token).then(function (ref) {
+      st.commitSha = ref.object.sha;
+      return gh('/git/commits/' + st.commitSha, null, token);
+    }).then(function (c) {
+      st.treeSha = c.tree.sha; st.date = c.committer && c.committer.date;
+      return gh('/git/trees/' + st.treeSha + '?recursive=1', null, token);
+    }).then(function (t) {
+      st.files = {};
+      t.tree.forEach(function (it) { if (it.type === 'blob') st.files[it.path] = it.sha; });
+      return st;
+    });
+  }
+  function getBlob(sha, token) { return gh('/git/blobs/' + sha, null, token).then(function (b) { return b64d(b.content); }); }
+  // Writes every change as one commit; nothing is visible until the ref moves.
+  function commitChanges(base, changes, message, token, onBlob) {
+    var paths = Object.keys(changes), files = Object.assign({}, base.files), treeItems = [];
+    var uploads = paths.filter(function (p) { return changes[p] !== null; });
+    var done = 0;
+    function upload(i) {
+      if (i >= uploads.length) return Promise.resolve();
+      var p = uploads[i];
+      return gh('/git/blobs', { method: 'POST', body: { content: b64e(changes[p]), encoding: 'base64' } }, token).then(function (b) {
+        files[p] = b.sha;
+        treeItems.push({ path: p, mode: '100644', type: 'blob', sha: b.sha });
+        done++; if (onBlob) onBlob(done, uploads.length);
+        return upload(i + 1);
+      });
+    }
+    return upload(0).then(function () {
+      paths.forEach(function (p) {
+        if (changes[p] === null && base.files[p]) { treeItems.push({ path: p, mode: '100644', type: 'blob', sha: null }); delete files[p]; }
+      });
+      return gh('/git/trees', { method: 'POST', body: { base_tree: base.treeSha, tree: treeItems } }, token);
+    }).then(function (tree) {
+      return gh('/git/commits', { method: 'POST', body: { message: message, tree: tree.sha, parents: [base.commitSha] } }, token)
+        .then(function (c) { return { commit: c, treeSha: tree.sha }; });
+    }).then(function (r) {
+      return gh('/git/refs/heads/' + BRANCH, { method: 'PATCH', body: { sha: r.commit.sha, force: false } }, token)
+        .then(function () { return { commitSha: r.commit.sha, treeSha: r.treeSha, files: files, date: r.commit.committer && r.commit.committer.date }; });
+    });
+  }
+
+  // ---------- State ----------
+  var S = {
+    keys: null, keyId: null, token: null, header: null, entries: [],
+    baseSha: null, baseDate: null, files: {}, dirty: false, rev: 0, pendingImgs: {},
+    lastSync: 0, offline: false, syncing: false, syncAgain: false,
+    blocked: null, remoteHeader: null, checklist: [false, false, false, false, false],
+    checklistSeen: false, copyNoteSeen: false
+  };
+
+  function saveLocal() {
+    if (!S.keys) return Promise.resolve();
+    return seal(S.keys.encKey, te.encode(JSON.stringify(S.entries)), 'entries.enc', S.keyId).then(function (packed) {
+      return isetMany({
+        keys: S.keys, keyId: S.keyId, token: S.token, header: S.header, entriesPacked: packed,
+        baseSha: S.baseSha, baseDate: S.baseDate, files: S.files, dirty: S.dirty, pendingImgs: S.pendingImgs, lastSync: S.lastSync
+      });
+    });
+  }
+  function loadLocal() {
+    return Promise.all(['keys', 'keyId', 'token', 'header', 'entriesPacked', 'baseSha', 'files', 'dirty',
+      'pendingImgs', 'lastSync', 'checklist', 'checklistSeen', 'copyNoteSeen', 'baseDate'].map(iget)).then(function (v) {
+      if (!v[0] || !v[1] || !v[4]) return false;
+      S.keys = v[0]; S.keyId = v[1]; S.token = v[2]; S.header = v[3];
+      S.baseSha = v[5] || null; S.files = v[6] || {}; S.dirty = !!v[7]; S.pendingImgs = v[8] || {};
+      S.lastSync = v[9] || 0; S.checklist = v[10] || S.checklist; S.checklistSeen = !!v[11]; S.copyNoteSeen = !!v[12]; S.baseDate = v[13] || null;
+      return unseal(S.keys.encKey, v[4], 'entries.enc', S.keyId).then(function (pt) {
+        S.entries = JSON.parse(td.decode(pt));
+        return true;
+      });
+    });
+  }
+
+  function visibleEntries() {
+    return S.entries.filter(function (e) { return !e.deleted; })
+      .sort(function (a, b) { return a.account.localeCompare(b.account, undefined, { sensitivity: 'base' }); });
+  }
+  function findEntry(id) { for (var i = 0; i < S.entries.length; i++) if (S.entries[i].id === id) return S.entries[i]; return null; }
+  function putEntry(e) {
+    var i = S.entries.findIndex(function (x) { return x.id === e.id; });
+    if (i >= 0) S.entries[i] = e; else S.entries.push(e);
+    S.dirty = true; S.rev++;
+    return saveLocal().then(function () { sync(); });
+  }
+  function merge(local, remote) {
+    var m = new Map();
+    remote.forEach(function (e) { m.set(e.id, e); });
+    local.forEach(function (e) {
+      var r = m.get(e.id);
+      if (!r || (e.updatedAt || 0) > (r.updatedAt || 0)) m.set(e.id, e);
+    });
+    return Array.from(m.values());
+  }
+  // A kept local edit can point at an image the remote side has since
+  // replaced (for example, after a vault key replacement). Point it at the
+  // remote entry's image instead, or drop it if there is none.
+  function fixImages(entries, remoteEntries, files) {
+    var rmap = new Map(remoteEntries.map(function (e) { return [e.id, e]; }));
+    entries.forEach(function (e) {
+      if (!e.imageId || S.pendingImgs[e.imageId] || files['images/' + e.imageId + '.enc']) return;
+      var r = rmap.get(e.id);
+      e.imageId = r && r.imageId && files['images/' + r.imageId + '.enc'] ? r.imageId : null;
+    });
+    return entries;
+  }
+
+  // ---------- Sync ----------
+  function sync() {
+    if (!S.keys || !S.token || S.blocked) return Promise.resolve();
+    if (S.syncing) { S.syncAgain = true; return Promise.resolve(); }
+    S.syncing = true; renderStatus();
+    var attempt = 0;
+    function round() {
+      attempt++;
+      var rs, startRev = S.rev;
+      return remoteState().then(function (r) {
+        rs = r;
+        if (!rs.files['vault.json'] || !rs.files['entries.enc']) throw new GhError('tamper', 0);
+        if (rs.commitSha === S.baseSha) return null;
+        // GitHub can briefly report the previous commit right after a save.
+        // A commit older than our own base is a stale read: retry shortly.
+        if (S.baseDate && rs.date && new Date(rs.date) < new Date(S.baseDate)) throw new GhError('stale', 0);
+        return getBlob(rs.files['vault.json']).then(function (hb) {
+          var hdr;
+          try { hdr = JSON.parse(td.decode(hb)); } catch (e) { throw new GhError('tamper', 0); }
+          if (hdr.format !== FORMAT) throw new GhError('tamper', 0);
+          if (hdr.keyId !== S.keyId) { S.remoteHeader = hdr; throw new GhError('keyreplaced', 0); }
+          return verifyHeader(hdr, S.keys.macKey).then(function (ok) {
+            if (!ok) throw new GhError('tamper', 0);
+            return getBlob(rs.files['entries.enc']);
+          });
+        }).then(function (eb) {
+          return unseal(S.keys.encKey, eb, 'entries.enc', S.keyId).catch(function () { throw new GhError('tamper', 0); });
+        }).then(function (pt) {
+          var remote = JSON.parse(td.decode(pt));
+          S.entries = fixImages(S.dirty ? merge(S.entries, remote) : remote, remote, rs.files);
+        });
+      }).then(function () {
+        if (!S.dirty) {
+          S.baseSha = rs.commitSha; S.baseDate = rs.date || S.baseDate; S.files = rs.files; S.lastSync = Date.now(); S.offline = false;
+          return saveLocal();
+        }
+        var changes = {}, referenced = {};
+        S.entries.forEach(function (e) { if (!e.deleted && e.imageId) referenced[e.imageId] = true; });
+        Object.keys(S.pendingImgs).forEach(function (id) { if (referenced[id]) changes['images/' + id + '.enc'] = S.pendingImgs[id]; });
+        Object.keys(rs.files).forEach(function (p) {
+          var m = /^images\/([0-9a-f]+)\.enc$/.exec(p);
+          if (m && !referenced[m[1]]) changes[p] = null;
+        });
+        var snapshot = JSON.stringify(S.entries);
+        return seal(S.keys.encKey, te.encode(snapshot), 'entries.enc', S.keyId).then(function (packed) {
+          changes['entries.enc'] = packed;
+          return commitChanges(rs, changes, 'Update vault');
+        }).then(function (nc) {
+          var cache = {};
+          Object.keys(S.pendingImgs).forEach(function (id) { if (referenced[id]) cache['img:' + id] = S.pendingImgs[id]; });
+          if (Object.keys(cache).length) isetMany(cache);
+          var still = {};
+          Object.keys(S.pendingImgs).forEach(function (id) { if (!changes['images/' + id + '.enc'] && S.rev !== startRev) still[id] = S.pendingImgs[id]; });
+          S.pendingImgs = still;
+          S.baseSha = nc.commitSha; S.baseDate = nc.date || S.baseDate; S.files = nc.files; S.lastSync = Date.now(); S.offline = false;
+          S.dirty = S.rev !== startRev;
+          return saveLocal();
+        }).catch(function (e) {
+          if (e.kind === 'http' && e.status === 422 && attempt < 4) return round();
+          throw e;
+        });
+      });
+    }
+    return round().catch(function (e) {
+      if (e.kind === 'stale') setTimeout(sync, 2000);
+      else if (e.kind === 'offline') S.offline = true;
+      else if (e.kind === 'token') S.blocked = 'token';
+      else if (e.kind === 'keyreplaced') S.blocked = 'keyreplaced';
+      else if (e.kind === 'tamper') { S.blocked = 'tamper'; show('s-tamper'); }
+      else S.offline = true;
+    }).then(function () {
+      S.syncing = false;
+      renderList(); renderStatus();
+      if (S.syncAgain) { S.syncAgain = false; return sync(); }
+    });
+  }
+
+  // ---------- Images ----------
+  function imagePath(id) { return 'images/' + id + '.enc'; }
+  function loadImageBytes(id) {
+    if (S.pendingImgs[id]) return unseal(S.keys.encKey, S.pendingImgs[id], imagePath(id), S.keyId);
+    return iget('img:' + id).then(function (packed) {
+      if (packed) return packed;
+      var sha = S.files[imagePath(id)];
+      if (!sha) throw new Error('missing');
+      return getBlob(sha).then(function (b) { iset('img:' + id, b); return b; });
+    }).then(function (packed) { return unseal(S.keys.encKey, packed, imagePath(id), S.keyId); });
+  }
+  function resizeImage(file) {
+    return createImageBitmap(file).then(function (bmp) {
+      var scale = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
+      var c = document.createElement('canvas');
+      c.width = Math.round(bmp.width * scale); c.height = Math.round(bmp.height * scale);
+      c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+      if (bmp.close) bmp.close();
+      return new Promise(function (res, rej) {
+        c.toBlob(function (b) { b ? res(b) : rej(new Error('encode')); }, 'image/jpeg', 0.85);
+      });
+    }).then(function (blob) { return blob.arrayBuffer(); }).then(function (ab) { return new Uint8Array(ab); });
+  }
+  var objectUrls = [];
+  function urlFor(bytes) { var u = URL.createObjectURL(new Blob([bytes], { type: 'image/jpeg' })); objectUrls.push(u); return u; }
+  function revokeUrls() { objectUrls.forEach(function (u) { URL.revokeObjectURL(u); }); objectUrls = []; }
+
+  // ---------- UI helpers ----------
+  var SCREENS = ['s-install', 's-welcome', 's-key', 's-confirm', 's-connect', 's-add', 's-list', 's-entry', 's-edit',
+    's-settings', 's-token', 's-replace', 's-progress', 's-fail', 's-tamper', 's-newkey', 's-check'];
+  var current = null;
+  function show(id) {
+    SCREENS.forEach(function (s) { $(s).hidden = s !== id; });
+    current = id;
+    $('clipbar').hidden = !(id === 's-entry' && clipActive);
+  }
+  function setErr(id, text) { $(id).textContent = text || ''; }
+  function shake(el) { el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); }
+  var toastTimer = null;
+  function toast(text) {
+    var t = $('toast'); t.textContent = text; t.hidden = false;
+    clearTimeout(toastTimer); toastTimer = setTimeout(function () { t.hidden = true; }, 2000);
+  }
+  function autoGrow(ta) { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; }
+  function fmtKeyInput(el) {
+    var raw = normKey(el.value).slice(0, 32), g = groupKey(raw);
+    if (el.value !== g) el.value = g;
+  }
+  // Two-tap pattern: first tap arms (label changes), second within 5 s fires.
+  function twoTap(btn, armedLabel, onFire, armClass) {
+    var label = null, timer = null;
+    function reset() { if (label !== null) { btn.textContent = label; label = null; if (armClass) btn.classList.remove(armClass); } clearTimeout(timer); }
+    btn.addEventListener('click', function (ev) {
+      ev.stopPropagation();
+      if (label === null) {
+        label = btn.textContent; btn.textContent = armedLabel; if (armClass) btn.classList.add(armClass);
+        timer = setTimeout(reset, 5000);
+      } else { reset(); onFire(); }
+    });
+    document.addEventListener('click', function (ev) { if (ev.target !== btn) reset(); }, true);
+    return reset;
+  }
+  document.querySelectorAll('.tokName').forEach(function (el) { el.textContent = TOKEN_NAME; });
+  document.querySelectorAll('.devName').forEach(function (el) { el.textContent = DEVICE; });
+  document.querySelectorAll('.rkInput').forEach(function (el) { el.addEventListener('input', function () { fmtKeyInput(el); }); });
+
+  // ---------- Setup ----------
+  var pending = null; // vault being created or rotated, held in memory only
+  var keyMode = 'setup'; // 'setup' or 'rotate'
+  function showKeyScreen() {
+    var r = pending.recovery;
+    $('k-key').innerHTML = '';
+    $('k-key').appendChild(document.createTextNode(groupKey(r.slice(0, 16))));
+    $('k-key').appendChild(document.createElement('br'));
+    $('k-key').appendChild(document.createTextNode(groupKey(r.slice(16))));
+    $('k-print').hidden = IS_IOS;
+    $('k-step').hidden = keyMode !== 'setup';
+    $('c-step').hidden = keyMode !== 'setup';
+    $('k-title').textContent = keyMode === 'setup' ? 'Your recovery key' : 'Your new recovery key';
+    show('s-key');
+  }
+  $('w-setup').addEventListener('click', function () {
+    makeVault().then(function (v) { pending = v; keyMode = 'setup'; showKeyScreen(); });
+  });
+  $('k-print').addEventListener('click', function () { window.print(); });
+  $('k-next').addEventListener('click', function () {
+    $('c-input').value = ''; setErr('c-err'); $('c-next').disabled = true; show('s-confirm');
+  });
+  $('c-input').addEventListener('input', function () {
+    this.value = normKey(this.value).slice(0, 4);
+    $('c-next').disabled = this.value.length !== 4; setErr('c-err');
+  });
+  $('c-back').addEventListener('click', showKeyScreen);
+  $('c-next').addEventListener('click', function () {
+    if (normKey($('c-input').value) !== pending.recovery.slice(-4)) {
+      shake($('c-input')); setErr('c-err', "That doesn't match. Check your copy and try again."); return;
+    }
+    if (keyMode === 'setup') { $('n-token').value = ''; setErr('n-err'); $('n-finish').disabled = true; show('s-connect'); }
+    else { pending = null; toast('Done'); openList(); }
+  });
+  $('n-token').addEventListener('input', function () { $('n-finish').disabled = !this.value.trim(); setErr('n-err'); });
+  $('n-finish').addEventListener('click', function () {
+    var token = $('n-token').value.trim(), btn = this;
+    btn.disabled = true;
+    remoteState(token).then(function (rs) {
+      if (rs.files['vault.json']) throw new Error('exists');
+      return seal(pending.keys.encKey, te.encode('[]'), 'entries.enc', pending.keyId).then(function (packed) {
+        return commitChanges(rs, { 'vault.json': te.encode(JSON.stringify(pending.header, null, 2)), 'entries.enc': packed }, 'Create vault', token);
+      });
+    }).then(function (nc) {
+      S.keys = pending.keys; S.keyId = pending.keyId; S.header = pending.header; S.token = token;
+      S.entries = []; S.baseSha = nc.commitSha; S.baseDate = nc.date; S.files = nc.files; S.dirty = false; S.lastSync = Date.now();
+      pending = null;
+      return saveLocal();
+    }).then(function () {
+      navigator.storage && navigator.storage.persist && navigator.storage.persist();
+      afterJoin();
+    }).catch(function (e) {
+      btn.disabled = false;
+      if (e.message === 'exists') setErr('n-err', 'A PassApp vault already exists in passapp-data. Go back and choose Add this device.');
+      else setErr('n-err', "GitHub didn't accept that token. Check its name and access, then try again.");
+    });
+  });
+
+  // ---------- Add this device ----------
+  $('w-add').addEventListener('click', function () {
+    $('a-token').value = ''; $('a-key').value = ''; setErr('a-err'); $('a-add').disabled = true; show('s-add');
+  });
+  $('a-back').addEventListener('click', function () { show('s-welcome'); });
+  function addReady() { $('a-add').disabled = !$('a-token').value.trim() || normKey($('a-key').value).length !== 32; setErr('a-err'); }
+  $('a-token').addEventListener('input', addReady);
+  $('a-key').addEventListener('input', addReady);
+  $('a-add').addEventListener('click', function () {
+    var token = $('a-token').value.trim(), btn = this, rs, header, keys;
+    btn.disabled = true; btn.textContent = 'Adding this device...';
+    remoteState(token).catch(function () { throw new Error('token'); }).then(function (r) {
+      rs = r;
+      if (!rs.files['vault.json']) throw new Error('badkey');
+      return getBlob(rs.files['vault.json'], token);
+    }).then(function (hb) {
+      header = JSON.parse(td.decode(hb));
+      return openVault(header, $('a-key').value);
+    }).then(function (k) {
+      keys = k;
+      return getBlob(rs.files['entries.enc'], token);
+    }).then(function (eb) {
+      return unseal(keys.encKey, eb, 'entries.enc', header.keyId);
+    }).then(function (pt) {
+      S.keys = keys; S.keyId = header.keyId; S.header = header; S.token = token;
+      S.entries = JSON.parse(td.decode(pt)); S.baseSha = rs.commitSha; S.baseDate = rs.date; S.files = rs.files;
+      S.dirty = false; S.pendingImgs = {}; S.lastSync = Date.now();
+      return saveLocal();
+    }).then(function () {
+      navigator.storage && navigator.storage.persist && navigator.storage.persist();
+      btn.textContent = 'Add';
+      afterJoin();
+    }).catch(function (e) {
+      btn.disabled = false; btn.textContent = 'Add';
+      if (e.message === 'token') setErr('a-err', "GitHub didn't accept that token. Check its name and access, then try again.");
+      else if (e.message === 'tamper') { setErr('a-err', ''); show('s-tamper'); }
+      else setErr('a-err', "That recovery key doesn't open this vault. Check your copy and try again.");
+    });
+  });
+  function afterJoin() {
+    if (!S.checklistSeen) { S.checklistSeen = true; iset('checklistSeen', true); openChecklist(true); }
+    else openList();
+  }
+
+  // ---------- List ----------
+  var IMG_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-label="Has image"><rect x="3" y="5" width="18" height="14"/><circle cx="9" cy="10" r="2"/><path d="M21 17l-6-6-9 8"/></svg>';
+  function renderList() {
+    if (current !== 's-list') return;
+    var q = $('searchInput').value.trim().toLowerCase();
+    $('searchClear').hidden = !q;
+    var list = visibleEntries(), stack = $('entryStack');
+    var shown = q ? list.filter(function (e) { return e.account.toLowerCase().indexOf(q) >= 0; }) : list;
+    stack.innerHTML = '';
+    var readOnly = S.blocked === 'keyreplaced';
+    if (!list.length) {
+      var es = document.createElement('div'); es.className = 'emptyState';
+      es.innerHTML = '<p>No passwords yet.</p>';
+      if (!readOnly) { var b = document.createElement('button'); b.className = 'btn primary'; b.textContent = 'Add your first password'; b.onclick = function () { openEdit(null, ''); }; es.appendChild(b); }
+      stack.appendChild(es);
+    } else if (!shown.length) {
+      var ns = document.createElement('div'); ns.className = 'emptyState';
+      var p = document.createElement('p'); p.textContent = 'No account matches "' + $('searchInput').value.trim() + '".'; ns.appendChild(p);
+      if (!readOnly) { var nb = document.createElement('button'); nb.className = 'btn primary'; nb.textContent = 'Add "' + $('searchInput').value.trim() + '"'; nb.onclick = function () { openEdit(null, $('searchInput').value.trim()); }; ns.appendChild(nb); }
+      stack.appendChild(ns);
+    } else {
+      shown.forEach(function (e) {
+        var row = document.createElement('button'); row.className = 'row';
+        var txt = document.createElement('div'); txt.className = 'txt';
+        var a = document.createElement('div'); a.className = 'acct'; a.textContent = e.account;
+        txt.appendChild(a);
+        if (e.username) { var u = document.createElement('div'); u.className = 'user'; u.textContent = e.username; txt.appendChild(u); }
+        row.appendChild(txt);
+        if (e.imageId) row.insertAdjacentHTML('beforeend', IMG_ICON);
+        row.onclick = function () { openEntry(e.id); };
+        stack.appendChild(row);
+      });
+    }
+    $('addBtn').hidden = readOnly;
+    var bn = $('l-banner');
+    if (S.blocked === 'token') { bn.hidden = false; bn.textContent = "GitHub stopped accepting this device's token. Tap to replace it."; }
+    else if (S.blocked === 'keyreplaced') { bn.hidden = false; bn.textContent = 'Your vault key was replaced on another device. Tap to enter the new recovery key.'; }
+    else bn.hidden = true;
+  }
+  function renderStatus() {
+    var el = $('syncStatus'), t;
+    if (S.syncing && S.dirty) t = 'Saving...';
+    else if (S.offline) t = 'Offline. Changes are saved on this ' + DEVICE + '.';
+    else if (!S.lastSync) t = '';
+    else {
+      var min = Math.floor((Date.now() - S.lastSync) / 60000);
+      t = min < 1 ? 'Synced just now' : 'Synced ' + min + ' min ago';
+    }
+    el.textContent = t;
+  }
+  function openList() { show('s-list'); renderList(); renderStatus(); }
+  $('searchInput').addEventListener('input', renderList);
+  $('searchClear').addEventListener('click', function () { $('searchInput').value = ''; renderList(); $('searchInput').focus(); });
+  $('syncStatus').addEventListener('click', function () { sync(); });
+  $('addBtn').addEventListener('click', function () { openEdit(null, ''); });
+  $('l-settings').addEventListener('click', openSettings);
+  $('l-banner').addEventListener('click', function () {
+    if (S.blocked === 'token') openToken();
+    else if (S.blocked === 'keyreplaced') { $('nk-key').value = ''; setErr('nk-err'); $('nk-go').disabled = true; show('s-newkey'); }
+  });
+  setInterval(renderStatus, 30000);
+
+  // ---------- Entry view ----------
+  var viewId = null, passShown = false;
+  function maskPass() { passShown = false; $('e-pass').textContent = '••••••••'; $('e-pass').className = 'val dots'; $('e-show').textContent = 'Show'; }
+  function openEntry(id) {
+    var e = findEntry(id); if (!e) return;
+    viewId = id; revokeUrls();
+    $('e-title').textContent = e.account;
+    $('e-user').textContent = e.username || '';
+    $('e-userRow').hidden = !e.username;
+    $('e-passRow').hidden = !e.password;
+    $('e-notes').textContent = e.notes || '';
+    $('e-notesRow').hidden = !e.notes;
+    $('e-edit').hidden = S.blocked === 'keyreplaced';
+    maskPass();
+    var img = $('e-img'); img.removeAttribute('src');
+    $('e-imgRow').hidden = !e.imageId;
+    if (e.imageId) loadImageBytes(e.imageId).then(function (b) { if (viewId === id) img.src = urlFor(b); }).catch(function () { $('e-imgRow').hidden = true; });
+    resetCopyBtns();
+    show('s-entry');
+  }
+  $('e-back').addEventListener('click', function () { viewId = null; revokeUrls(); openList(); });
+  $('e-show').addEventListener('click', function () {
+    var e = findEntry(viewId); if (!e) return;
+    if (passShown) maskPass();
+    else { passShown = true; $('e-pass').textContent = e.password; $('e-pass').className = 'val mono'; $('e-show').textContent = 'Hide'; }
+  });
+  $('e-edit').addEventListener('click', function () { openEdit(viewId); });
+  $('e-img').addEventListener('click', function () { if ($('e-img').src) { $('viewerImg').src = $('e-img').src; $('viewer').hidden = false; } });
+  $('viewer').addEventListener('click', function () { $('viewer').hidden = true; $('viewerImg').removeAttribute('src'); });
+
+  // ---------- Clipboard ----------
+  var copyTimers = {}, pcTimer = null, clipActive = false;
+  function resetCopyBtns() { ['e-copyUser', 'e-copyPass'].forEach(function (id) { $(id).textContent = 'Copy'; $(id).classList.remove('copied'); clearTimeout(copyTimers[id]); }); }
+  function doCopy(btnId, text, what) {
+    if (!navigator.clipboard) return;
+    navigator.clipboard.writeText(text).then(function () {
+      var b = $(btnId); b.textContent = 'Copied'; b.classList.add('copied');
+      clearTimeout(copyTimers[btnId]);
+      copyTimers[btnId] = setTimeout(function () { b.textContent = 'Copy'; b.classList.remove('copied'); }, 2000);
+      showClipbar(what);
+      if (!S.copyNoteSeen) {
+        S.copyNoteSeen = true; iset('copyNoteSeen', true);
+        $('copyNoteText').textContent = IS_IOS
+          ? "PassApp can't clear your clipboard by itself. Tap Clear when you're done pasting. Copies also reach your other Apple devices through Universal Clipboard."
+          : 'PassApp clears your clipboard 30 seconds after you copy, as long as PassApp is still open.';
+        $('copyNote').hidden = false;
+      }
+    }).catch(function () {});
+  }
+  function showClipbar(what) {
+    var bar = $('clipbar');
+    clipActive = true; bar.hidden = current !== 's-entry';
+    clearInterval(pcTimer);
+    if (IS_IOS) { $('clipText').textContent = what + ' copied.'; $('clipClear').hidden = false; return; }
+    $('clipClear').hidden = true;
+    var n = 30;
+    $('clipText').textContent = 'Clipboard clears in ' + n + ' s';
+    pcTimer = setInterval(function () {
+      n--;
+      if (n > 0) { $('clipText').textContent = 'Clipboard clears in ' + n + ' s'; return; }
+      clearInterval(pcTimer); clipActive = false; bar.hidden = true;
+      if (document.hasFocus()) navigator.clipboard.writeText('').catch(function () {});
+    }, 1000);
+  }
+  $('clipClear').addEventListener('click', function () {
+    navigator.clipboard.writeText('').catch(function () {}).then(function () { clipActive = false; $('clipbar').hidden = true; });
+  });
+  $('e-copyUser').addEventListener('click', function () { var e = findEntry(viewId); if (e) doCopy('e-copyUser', e.username || '', 'Username'); });
+  $('e-copyPass').addEventListener('click', function () { var e = findEntry(viewId); if (e) doCopy('e-copyPass', e.password || '', 'Password'); });
+  $('copyNoteOk').addEventListener('click', function () { $('copyNote').hidden = true; });
+
+  // ---------- Edit form ----------
+  var editId = null, editImg = null, initial = '';
+  function formState() { return JSON.stringify([$('f-account').value, $('f-user').value, $('f-pass').value, $('f-notes').value, editImg && editImg.mode]); }
+  function updateSave() { $('f-save').disabled = !$('f-account').value.trim(); }
+  function renderImgEdit() {
+    var has = editImg.mode === 'new' || (editImg.mode === 'keep' && editImg.id);
+    $('f-imgNone').hidden = has; $('f-imgSome').hidden = !has;
+  }
+  var resetCancel = null, resetDelete = null;
+  function openEdit(id, prefill) {
+    var e = id ? findEntry(id) : null;
+    editId = id || null;
+    $('f-title').textContent = e ? 'Edit' : 'New entry';
+    $('f-account').value = e ? e.account : (prefill || '');
+    $('f-user').value = e ? e.username || '' : '';
+    $('f-pass').value = e ? e.password || '' : '';
+    $('f-pass').type = 'password'; $('f-show').textContent = 'Show';
+    $('f-notes').value = e ? e.notes || '' : '';
+    setErr('f-err');
+    editImg = { mode: 'keep', id: e ? e.imageId : null, bytes: null };
+    $('f-imgThumb').removeAttribute('src');
+    if (editImg.id) loadImageBytes(editImg.id).then(function (b) { $('f-imgThumb').src = urlFor(b); }).catch(function () {});
+    renderImgEdit();
+    $('f-delete').hidden = !e;
+    if (resetCancel) resetCancel(); if (resetDelete) resetDelete();
+    $('f-cancel').textContent = 'Cancel';
+    initial = formState(); updateSave();
+    show('s-edit');
+    autoGrow($('f-notes'));
+    if (!e) setTimeout(function () { $('f-account').focus(); }, 50);
+  }
+  ['f-account', 'f-user', 'f-pass', 'f-notes'].forEach(function (id) { $(id).addEventListener('input', updateSave); });
+  $('f-notes').addEventListener('input', function () { autoGrow(this); });
+  $('f-show').addEventListener('click', function () {
+    var p = $('f-pass'); p.type = p.type === 'password' ? 'text' : 'password'; this.textContent = p.type === 'password' ? 'Show' : 'Hide';
+  });
+  $('f-addImg').addEventListener('click', function () { $('f-file').click(); });
+  $('f-replImg').addEventListener('click', function () { $('f-file').click(); });
+  $('f-remImg').addEventListener('click', function () { editImg = { mode: 'remove', id: null, bytes: null }; renderImgEdit(); });
+  $('f-file').addEventListener('change', function () {
+    var f = this.files && this.files[0]; this.value = '';
+    if (!f) return;
+    resizeImage(f).then(function (bytes) {
+      editImg = { mode: 'new', id: null, bytes: bytes };
+      $('f-imgThumb').src = urlFor(bytes); renderImgEdit();
+    }).catch(function () { setErr('f-err', "That image couldn't be read."); });
+  });
+  function leaveEdit() { if (editId) openEntry(editId); else openList(); }
+  // Cancel: plain tap when nothing changed; two-tap Discard otherwise.
+  (function () {
+    var btn = $('f-cancel'), armed = false, timer = null;
+    resetCancel = function () { armed = false; btn.textContent = 'Cancel'; clearTimeout(timer); };
+    btn.addEventListener('click', function (ev) {
+      ev.stopPropagation();
+      if (formState() === initial) { resetCancel(); leaveEdit(); return; }
+      if (!armed) { armed = true; btn.textContent = 'Discard'; timer = setTimeout(resetCancel, 5000); }
+      else { resetCancel(); leaveEdit(); }
+    });
+    document.addEventListener('click', function (ev) { if (ev.target !== btn && armed) resetCancel(); }, true);
+  })();
+  resetDelete = twoTap($('f-delete'), 'Confirm', function () {
+    var id = editId;
+    putEntry({ id: id, deleted: true, updatedAt: Date.now() }).then(function () { editId = null; openList(); });
+  }, 'armed');
+  $('f-save').addEventListener('click', function () {
+    var account = $('f-account').value.trim(); if (!account) return;
+    var old = editId ? findEntry(editId) : null;
+    var e = {
+      id: editId || newId(), account: account, username: $('f-user').value, password: $('f-pass').value,
+      notes: $('f-notes').value, imageId: old ? old.imageId : null, updatedAt: Date.now()
+    };
+    var p = Promise.resolve();
+    if (editImg.mode === 'remove') e.imageId = null;
+    if (editImg.mode === 'new') {
+      var imgId = newId();
+      p = seal(S.keys.encKey, editImg.bytes, imagePath(imgId), S.keyId).then(function (packed) { S.pendingImgs[imgId] = packed; e.imageId = imgId; });
+    }
+    $('f-save').disabled = true;
+    p.then(function () { return putEntry(e); }).then(function () { editId = e.id; openEntry(e.id); })
+      .catch(function () { $('f-save').disabled = false; setErr('f-err', "Couldn't save. Try again."); });
+  });
+
+  // ---------- Settings ----------
+  function openSettings() {
+    var min = S.lastSync ? Math.floor((Date.now() - S.lastSync) / 60000) : null;
+    $('g-gh').textContent = 'passapp-data, token ' + TOKEN_NAME + (min === null ? '' : ', synced ' + min + ' min ago');
+    $('g-checkSub').textContent = S.checklist.filter(Boolean).length + ' of 5 done';
+    $('g-version').textContent = 'PassApp ' + VERSION;
+    show('s-settings');
+  }
+  $('g-back').addEventListener('click', openList);
+  $('g-token').addEventListener('click', openToken);
+  $('g-check').addEventListener('click', function () { openChecklist(false); });
+  $('g-replace').addEventListener('click', function () { setErr('r-err'); resetReplace(); show('s-replace'); });
+
+  // ---------- Replace token ----------
+  var tokenReturn = 's-settings';
+  function openToken() { tokenReturn = current === 's-list' ? 's-list' : 's-settings'; $('t-token').value = ''; setErr('t-err'); $('t-save').disabled = true; show('s-token'); }
+  $('t-back').addEventListener('click', function () { tokenReturn === 's-list' ? openList() : openSettings(); });
+  $('t-token').addEventListener('input', function () { $('t-save').disabled = !this.value.trim(); setErr('t-err'); });
+  $('t-save').addEventListener('click', function () {
+    var token = $('t-token').value.trim(), btn = this;
+    btn.disabled = true;
+    remoteState(token).then(function () {
+      S.token = token; if (S.blocked === 'token') S.blocked = null;
+      return saveLocal();
+    }).then(function () { openList(); sync(); }).catch(function () {
+      btn.disabled = false; setErr('t-err', "GitHub didn't accept that token. Check its name and access, then try again.");
+    });
+  });
+
+  // ---------- Replace vault key ----------
+  $('r-back').addEventListener('click', openSettings);
+  var resetReplace = twoTap($('r-go'), 'Confirm', function () { runRotation(); }, 'armed');
+  $('x-retry').addEventListener('click', function () { runRotation(); });
+  $('x-cancel').addEventListener('click', openList);
+  function progress(done, total) {
+    $('p-bar').style.width = (total ? Math.round(100 * done / total) : 100) + '%';
+    $('p-count').textContent = done + ' of ' + total + ' items';
+  }
+  function runRotation() {
+    show('s-progress'); progress(0, 0);
+    var v, rs, changes = {}, newEntries, oldFiles;
+    // Step 1: sync first; refuse if anything is unsaved or blocked.
+    return sync().then(function () {
+      if (S.dirty || S.blocked || S.offline) throw new Error('sync');
+      return remoteState();
+    }).then(function (r) {
+      rs = r;
+      if (rs.commitSha !== S.baseSha) throw new Error('sync');
+      return makeVault();
+    }).then(function (nv) {
+      v = nv;
+      newEntries = JSON.parse(JSON.stringify(S.entries));
+      var withImg = newEntries.filter(function (e) { return !e.deleted && e.imageId; });
+      var total = withImg.length + 1, done = 0;
+      progress(0, total);
+      return withImg.reduce(function (p, e) {
+        return p.then(function () { return loadImageBytes(e.imageId); }).then(function (bytes) {
+          var id = newId();
+          return seal(v.keys.encKey, bytes, imagePath(id), v.keyId).then(function (packed) {
+            changes[imagePath(id)] = packed; e.imageId = id; done++; progress(done, total);
+          });
+        });
+      }, Promise.resolve()).then(function () {
+        newEntries.forEach(function (e) { if (e.deleted || !e.imageId) delete e.imageId; });
+        Object.keys(rs.files).forEach(function (p) { if (/^images\//.test(p) && !changes[p]) changes[p] = null; });
+        return seal(v.keys.encKey, te.encode(JSON.stringify(newEntries)), 'entries.enc', v.keyId);
+      }).then(function (packed) {
+        changes['entries.enc'] = packed;
+        changes['vault.json'] = te.encode(JSON.stringify(v.header, null, 2));
+        return commitChanges(rs, changes, 'Replace vault key');
+      }).then(function (nc) {
+        progress(total, total);
+        S.keys = v.keys; S.keyId = v.keyId; S.header = v.header; S.entries = newEntries;
+        S.baseSha = nc.commitSha; S.baseDate = nc.date; S.files = nc.files; S.pendingImgs = {}; S.dirty = false; S.lastSync = Date.now();
+        return idelPrefix('img:').then(saveLocal);
+      });
+    }).then(function () {
+      pending = { recovery: v.recovery }; keyMode = 'rotate';
+      showKeyScreen();
+    }).catch(function () { show('s-fail'); });
+  }
+
+  // ---------- Vault key replaced on another device ----------
+  $('nk-back').addEventListener('click', openList);
+  $('nk-key').addEventListener('input', function () { $('nk-go').disabled = normKey(this.value).length !== 32; setErr('nk-err'); });
+  $('nk-go').addEventListener('click', function () {
+    var btn = this, hdr = S.remoteHeader;
+    btn.disabled = true;
+    openVault(hdr, $('nk-key').value).then(function (keys) {
+      // Re-encrypt unsynced images under the new key, then adopt it.
+      var ids = Object.keys(S.pendingImgs), out = {};
+      return ids.reduce(function (p, id) {
+        return p.then(function () { return unseal(S.keys.encKey, S.pendingImgs[id], imagePath(id), S.keyId); })
+          .then(function (b) { return seal(keys.encKey, b, imagePath(id), hdr.keyId); })
+          .then(function (packed) { out[id] = packed; });
+      }, Promise.resolve()).then(function () {
+        S.keys = keys; S.keyId = hdr.keyId; S.header = hdr; S.pendingImgs = out;
+        S.baseSha = null; S.baseDate = null; S.blocked = null; S.remoteHeader = null;
+        return idelPrefix('img:').then(saveLocal);
+      });
+    }).then(function () { openList(); sync(); }).catch(function (e) {
+      btn.disabled = false;
+      if (e.message === 'tamper') { S.blocked = 'tamper'; show('s-tamper'); }
+      else setErr('nk-err', "That recovery key doesn't open this vault. Check your copy and try again.");
+    });
+  });
+
+  // ---------- Tamper ----------
+  $('m-ok').addEventListener('click', function () { S.keys ? openList() : show('s-welcome'); });
+
+  // ---------- Checklist ----------
+  var CHECKS = [
+    ['iPhone passcode and Face ID are on.', "They're the only lock between a finder and PassApp.", 'https://support.apple.com/guide/iphone/set-a-passcode-iph14a867ae/ios'],
+    ['Advanced Data Protection is on (optional).', "Your iCloud backups may hold PassApp's key, and this keeps Apple from opening them.", 'https://support.apple.com/en-us/108756'],
+    ['PC disk encryption is on.', 'Without it, a stolen PC can be read.', 'https://support.microsoft.com/en-us/windows/device-encryption-in-windows-cf7e2b6f-3e70-4882-9532-18633605b7df'],
+    ['Your PC locks when you step away.', 'Press Windows key + L, or set a short screen-lock time.', null],
+    ['GitHub two-factor sign-in is on.', 'Whoever controls GitHub controls PassApp.', 'https://docs.github.com/en/authentication/securing-your-account-with-two-factor-authentication-2fa/configuring-two-factor-authentication']
+  ];
+  var checkReturnToList = true;
+  function openChecklist(fromJoin) {
+    checkReturnToList = fromJoin;
+    var box = $('checkList'); box.innerHTML = '';
+    CHECKS.forEach(function (c, i) {
+      var row = document.createElement('div'); row.className = 'check';
+      var cb = document.createElement('input'); cb.type = 'checkbox'; cb.id = 'chk' + i; cb.checked = !!S.checklist[i];
+      cb.addEventListener('change', function () { S.checklist[i] = cb.checked; iset('checklist', S.checklist.slice()); });
+      var lab = document.createElement('label'); lab.htmlFor = cb.id; lab.textContent = c[0];
+      var sp = document.createElement('span'); sp.textContent = c[1]; lab.appendChild(sp);
+      if (c[2]) { var a = document.createElement('a'); a.className = 'link'; a.href = c[2]; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.textContent = 'How'; lab.appendChild(a); }
+      row.appendChild(cb); row.appendChild(lab); box.appendChild(row);
+    });
+    show('s-check');
+  }
+  $('ch-done').addEventListener('click', function () { checkReturnToList ? openList() : openSettings(); });
+
+  // ---------- Background and lifecycle ----------
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) {
+      document.body.classList.add('veiled');
+      if (current === 's-entry') maskPass();
+      if (current === 's-edit') { $('f-pass').type = 'password'; $('f-show').textContent = 'Show'; }
+    } else {
+      document.body.classList.remove('veiled');
+      sync();
+    }
+  });
+  window.addEventListener('pagehide', function () { document.body.classList.add('veiled'); });
+  window.addEventListener('online', function () { sync(); });
+
+  // ---------- Start ----------
+  if ('serviceWorker' in navigator && location.protocol === 'https:') {
+    navigator.serviceWorker.register('sw.js').catch(function () {});
+  }
+  if (IS_IOS && !STANDALONE) { show('s-install'); return; }
+  loadLocal().catch(function () { return false; }).then(function (ok) {
+    if (!ok) { show('s-welcome'); return; }
+    openList();
+    sync();
+  });
+})();
+</script>
+</body>
+</html>
