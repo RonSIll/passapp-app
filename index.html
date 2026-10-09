@@ -353,6 +353,8 @@
       <div class="sblock"><div style="font-size:16px">GitHub</div><div class="sub" style="color:var(--text3);font-size:13px" id="g-gh"></div>
         <button class="btn" id="g-token" style="align-self:flex-start">Replace token</button></div>
       <button class="srow" id="g-check"><span>Device checklist<span class="sub" id="g-checkSub"></span></span><span class="chev">&rsaquo;</span></button>
+      <button class="srow" id="g-import"><span>Import from file<span class="sub">One-time import of your old password notes.</span></span><span class="chev">&rsaquo;</span></button>
+      <input type="file" id="g-importFile" accept=".json,application/json" hidden>
       <button class="srow red" id="g-replace"><span>Replace vault key<span class="sub">Use this if a device is lost or stolen.</span></span><span class="chev">&rsaquo;</span></button>
     </div>
     <div class="footer" id="g-version"></div>
@@ -388,6 +390,30 @@
       <div class="err" id="r-err"></div>
       <div class="spacer"></div>
       <button class="btn danger full" id="r-go">Replace vault key</button>
+    </div>
+  </section>
+
+  <!-- Import -->
+  <section class="screen" id="s-import" hidden>
+    <header class="sub">
+      <button class="iconBtn" id="i-back" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <span class="center">Import passwords</span><span class="hspacer"></span>
+    </header>
+    <div class="body">
+      <p class="strong" id="i-summary"></p>
+      <p id="i-dupes"></p>
+      <p>Each entry is encrypted on this PC before it's saved. Your original notes aren't changed.</p>
+      <div class="err" id="i-err"></div>
+      <div class="spacer"></div>
+      <button class="btn primary full" id="i-go"></button>
+    </div>
+  </section>
+  <section class="screen" id="s-imported" hidden>
+    <div class="body centered">
+      <h2 id="d-title"></h2>
+      <p class="strong">Now delete the import file from your PC. It holds your passwords in plain text.</p>
+      <p id="d-status"></p>
+      <button class="btn primary full" id="d-done">Done</button>
     </div>
   </section>
 
@@ -631,7 +657,8 @@
   }
 
   // ---------- GitHub (Git Data API) ----------
-  function GhError(kind, status) { this.kind = kind; this.status = status; this.message = kind + ' ' + status; }
+  function GhError(kind, status, wait) { this.kind = kind; this.status = status; this.wait = wait || 0; this.message = kind + ' ' + status; }
+  function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
   function gh(path, opts, token) {
     opts = opts || {};
     var headers = { 'Authorization': 'Bearer ' + (token || S.token), 'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' };
@@ -640,6 +667,12 @@
       method: opts.method || 'GET', headers: headers, cache: 'no-store',
       body: opts.body ? JSON.stringify(opts.body) : undefined
     }).catch(function () { throw new GhError('offline', 0); }).then(function (r) {
+      // GitHub's rate limits answer 403 or 429 with a wait hint; that's not a token problem.
+      var ra = r.headers.get('retry-after'), rem = r.headers.get('x-ratelimit-remaining');
+      if ((r.status === 403 || r.status === 429) && (ra || rem === '0')) {
+        var reset = Number(r.headers.get('x-ratelimit-reset')) * 1000;
+        throw new GhError('rate', r.status, ra ? Number(ra) * 1000 : Math.max(5000, reset - Date.now()));
+      }
       if (r.status === 401 || r.status === 403 || r.status === 404) throw new GhError('token', r.status);
       if (!r.ok) throw new GhError('http', r.status);
       return r.json();
@@ -665,10 +698,19 @@
     var paths = Object.keys(changes), files = Object.assign({}, base.files), treeItems = [];
     var uploads = paths.filter(function (p) { return changes[p] !== null; });
     var done = 0;
+    // Large saves are paced under GitHub's limit of about 80 content writes a
+    // minute, and a rate-limit answer waits and retries the same file.
+    var pace = uploads.length > 40 ? 800 : 0;
+    function post(p, tries) {
+      return gh('/git/blobs', { method: 'POST', body: { content: b64e(changes[p]), encoding: 'base64' } }, token).catch(function (e) {
+        if (e.kind === 'rate' && tries < 5) return sleep(Math.min(e.wait || 60000, 120000)).then(function () { return post(p, tries + 1); });
+        throw e;
+      });
+    }
     function upload(i) {
       if (i >= uploads.length) return Promise.resolve();
       var p = uploads[i];
-      return gh('/git/blobs', { method: 'POST', body: { content: b64e(changes[p]), encoding: 'base64' } }, token).then(function (b) {
+      return (pace && i ? sleep(pace) : Promise.resolve()).then(function () { return post(p, 0); }).then(function (b) {
         files[p] = b.sha;
         treeItems.push({ path: p, mode: '100644', type: 'blob', sha: b.sha });
         done++; if (onBlob) onBlob(done, uploads.length);
@@ -801,7 +843,7 @@
         var snapshot = JSON.stringify(S.entries);
         return seal(S.keys.encKey, te.encode(snapshot), 'entries.enc', S.keyId).then(function (packed) {
           changes['entries.enc'] = packed;
-          return commitChanges(rs, changes, 'Update vault');
+          return commitChanges(rs, changes, 'Update vault', undefined, S.onBlob);
         }).then(function (nc) {
           var cache = {};
           Object.keys(S.pendingImgs).forEach(function (id) { if (referenced[id]) cache['img:' + id] = S.pendingImgs[id]; });
@@ -861,7 +903,7 @@
 
   // ---------- UI helpers ----------
   var SCREENS = ['s-install', 's-welcome', 's-key', 's-confirm', 's-connect', 's-add', 's-list', 's-entry', 's-edit',
-    's-settings', 's-token', 's-replace', 's-progress', 's-fail', 's-tamper', 's-newkey', 's-check'];
+    's-settings', 's-token', 's-replace', 's-progress', 's-fail', 's-tamper', 's-newkey', 's-check', 's-import', 's-imported'];
   var current = null;
   function show(id) {
     SCREENS.forEach(function (s) { $(s).hidden = s !== id; });
@@ -1297,6 +1339,79 @@
       showKeyScreen();
     }).catch(function () { show('s-fail'); });
   }
+
+  // ---------- One-time import from file ----------
+  // Reads a passapp-import-1 file (built on the PC by src/tools/build_import.py),
+  // encrypts every entry on this device, and saves them all in one commit.
+  var importList = null;
+  function sameEntry(a, b) {
+    return a.account.trim().toLowerCase() === b.account.trim().toLowerCase() &&
+      (a.username || '') === (b.username || '') && (a.password || '') === (b.password || '');
+  }
+  $('g-import').addEventListener('click', function () { $('g-importFile').click(); });
+  $('g-importFile').addEventListener('change', function () {
+    var f = this.files && this.files[0]; this.value = '';
+    if (!f) return;
+    f.text().then(function (txt) {
+      var d = JSON.parse(txt);
+      if (!d || d.format !== 'passapp-import-1' || !Array.isArray(d.entries)) throw new Error('format');
+      var existing = visibleEntries();
+      var fresh = d.entries.filter(function (e) {
+        return e && typeof e.account === 'string' && e.account.trim() && !existing.some(function (x) { return sameEntry(x, e); });
+      });
+      importList = fresh;
+      var dupes = d.entries.length - fresh.length;
+      var withPw = fresh.filter(function (e) { return e.password; }).length;
+      var withImg = fresh.filter(function (e) { return e.image; }).length;
+      $('i-summary').textContent = 'Ready to import ' + fresh.length + ' entries: ' + withPw + ' with passwords, ' + withImg + ' with images.';
+      $('i-dupes').textContent = dupes ? dupes + ' entries already in PassApp were skipped.' : '';
+      $('i-go').textContent = 'Import ' + fresh.length + ' entries';
+      $('i-go').disabled = !fresh.length;
+      setErr('i-err'); resetImport();
+      show('s-import');
+    }).catch(function () { importList = null; toast("That file isn't a PassApp import file."); });
+  });
+  $('i-back').addEventListener('click', function () { importList = null; openSettings(); });
+  var resetImport = twoTap($('i-go'), 'Confirm', function () { runImport(); });
+  function runImport() {
+    var list = importList; importList = null;
+    if (!list || !list.length) return;
+    $('p-title').textContent = 'Importing your passwords';
+    show('s-progress'); progress(0, list.length);
+    var made = [], done = 0, now = Date.now();
+    return list.reduce(function (p, e) {
+      return p.then(function () {
+        var entry = { id: newId(), account: e.account.trim(), username: e.username || '', password: e.password || '',
+          notes: e.notes || '', imageId: null, updatedAt: now };
+        if (!e.image) return entry;
+        return resizeImage(new Blob([b64d(e.image.b64)], { type: e.image.type || 'image/png' })).then(function (bytes) {
+          var imgId = newId();
+          return seal(S.keys.encKey, bytes, imagePath(imgId), S.keyId).then(function (packed) {
+            S.pendingImgs[imgId] = packed; entry.imageId = imgId; return entry;
+          });
+        }).catch(function () { return entry; });
+      }).then(function (entry) { made.push(entry); done++; progress(done, list.length); });
+    }, Promise.resolve()).then(function () {
+      made.forEach(function (e) { S.entries.push(e); });
+      S.dirty = true; S.rev++;
+      return saveLocal();
+    }).then(function () {
+      $('p-title').textContent = 'Saving to GitHub';
+      progress(0, 1);
+      S.onBlob = function (d, t) { progress(d, t); };
+      return sync();
+    }).then(function () {
+      S.onBlob = null;
+      $('p-title').textContent = 'Re-encrypting your vault';
+      $('d-title').textContent = 'Imported ' + made.length + ' entries.';
+      $('d-status').textContent = S.dirty ? 'Some changes are still saved only on this PC. PassApp finishes saving the next time it can reach GitHub.' : '';
+      show('s-imported');
+    }).catch(function () {
+      S.onBlob = null; $('p-title').textContent = 'Re-encrypting your vault';
+      show('s-fail');
+    });
+  }
+  $('d-done').addEventListener('click', openList);
 
   // ---------- Vault key replaced on another device ----------
   $('nk-back').addEventListener('click', openList);
