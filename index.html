@@ -1462,6 +1462,19 @@
   }
   $('ch-done').addEventListener('click', function () { checkReturnToList ? openList() : openSettings(); });
 
+  // ---------- Escape key (PC) ----------
+  // Escape does what the bottom-left Back or Cancel button does on the current
+  // screen, including the two-tap Discard on the Edit screen. Open overlays
+  // (full-screen image, first-copy note) close first (Ron, 2026-10-09).
+  document.addEventListener('keydown', function (ev) {
+    if (ev.key !== 'Escape' || ev.isComposing) return;
+    if (!$('viewer').hidden) { $('viewer').click(); ev.preventDefault(); return; }
+    if (!$('copyNote').hidden) { $('copyNoteOk').click(); ev.preventDefault(); return; }
+    var sc = current && $(current);
+    var btn = sc && sc.querySelector('.bbar .l');
+    if (btn && !btn.hidden && !btn.disabled) { ev.preventDefault(); btn.click(); }
+  });
+
   // ---------- Background and lifecycle ----------
   document.addEventListener('visibilitychange', function () {
     if (document.hidden) {
