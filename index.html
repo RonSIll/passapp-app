@@ -52,7 +52,7 @@
     display: flex; align-items: center; justify-content: space-between; gap: 8px;
     padding: 4px 8px 4px 14px; border-bottom: 0.5px solid var(--border); flex: 0 0 auto; min-height: 52px;
   }
-  header h1 { font-size: 21.2px; font-weight: 700; margin: 0; }
+  header h1 { font-size: 21.2px; font-weight: 700; margin: 0; color: var(--active-dim); }
   header .center { flex: 1; text-align: center; font-size: 20px; font-weight: 600; min-width: 0;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   header.sub { padding-left: 4px; }
@@ -157,7 +157,7 @@
   #searchIcon { position: absolute; left: 30px; top: 20px; width: 22px; height: 22px; color: var(--active-dim); pointer-events: none; }
   #searchRow:focus-within #searchIcon { color: var(--active); }
   #searchClear { position: absolute; right: 16px; top: 8px; height: 44px; width: 40px; background: none; border: none; color: var(--text3); font-size: 20px; }
-  #syncStatus { font-size: 15px; color: var(--text3); flex: 1; text-align: center; background: none; border: none; min-height: 44px; }
+  #syncStatus { font-size: 15px; color: var(--text3); flex: 1; text-align: right; padding: 0 2px; background: none; border: none; min-height: 44px; }
 
   /* Entry view */
   .frow { border-bottom: 0.5px solid var(--border); padding: 10px 0; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
