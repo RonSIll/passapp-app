@@ -1530,6 +1530,24 @@
     if (!head || /(\sand|&|['’]s)$/i.test(head)) return s;
     return head + (m[2] || '');
   }
+  // Notes carry the same Markdown mailto links, sometimes wrapped in quote
+  // marks from forwarded emails. Keep the visible address; a link whose text
+  // is a name keeps the name and adds the address (Ron, 2026-10-10).
+  var MAIL = '([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+[.][A-Za-z]{2,})';
+  var HREF = '\\]\\(mailto:[^)]*\\)';
+  var NOTE_MAIL_FIXES = [
+    [new RegExp('\\[([^\\]@]+)' + HREF + '\\[\\s*' + MAIL + '\\s*' + HREF, 'g'), '$1 ($2)'],
+    [new RegExp('<>\\s*\\[>\\s*' + MAIL + HREF + '>\\s*>', 'g'), '<$1>'],
+    [new RegExp('">\\s*\\[>\\s*' + MAIL + HREF + '>\\s*"', 'g'), '"$1"'],
+    [new RegExp('\\[>\\s*' + MAIL + HREF + '>?', 'g'), '$1'],
+    [new RegExp('\\[\\s*(\\*{1,2}|_)?' + MAIL + '\\1?\\s*' + HREF, 'g'), '$2'],
+    [new RegExp('\\[([^\\]@]+)\\]\\(mailto:' + MAIL + '[^)]*\\)', 'g'), '$1 ($2)']
+  ];
+  function cleanNoteEmails(v) {
+    var s = String(v || '');
+    NOTE_MAIL_FIXES.forEach(function (f) { s = s.replace(f[0], f[1]); });
+    return s;
+  }
   function cleanup(flag, field, fix, noun) {
     return iget(flag).then(function (done) {
       if (done || !S.keys || S.blocked || S.offline || S.syncing || !S.lastSync) return;
@@ -1551,7 +1569,8 @@
   }
   function runCleanups() {
     return cleanup('cleanup-usernames-v1', 'username', stripLinks, 'username')
-      .then(function () { return cleanup('cleanup-accounts-v1', 'account', trimAccount, 'account name'); });
+      .then(function () { return cleanup('cleanup-accounts-v1', 'account', trimAccount, 'account name'); })
+      .then(function () { return cleanup('cleanup-note-emails-v1', 'notes', cleanNoteEmails, 'note'); });
   }
 
   // ---------- Start ----------
