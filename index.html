@@ -1548,29 +1548,111 @@
     NOTE_MAIL_FIXES.forEach(function (f) { s = s.replace(f[0], f[1]); });
     return s;
   }
-  function cleanup(flag, field, fix, noun) {
+  // Some notes hold a username or password in a form the import missed:
+  // "Username -- x", a label alone with the value on the next line,
+  // "Blurb Username: x", a table row. Copy (never move) a single clear value
+  // into an EMPTY Username or Password field; Notes stay as they are. PINs,
+  // old or new passwords, and notes with two different candidates are left
+  // for Ron (Ron, 2026-10-10). Runs on the PC only.
+  var CRED_USER = /^(user ?name|user ?id|user|login(?: id| name)?|sign[ -]?in(?: name| id)?)$/i;
+  var CRED_MAIL = /^(e-?mail(?: address)?)$/i;
+  var CRED_PASS = /^(password|passwd|pass|pwd|pw|passcode)$/i;
+  var CRED_SKIP = /\b(old|new|previous|former|prior|temp|temporary|expired|pin|hint|question|answer|recovery|backup|security|reset|change|changing|forgot)\b/i;
+  function credPlain(l) {
+    return stripLinks(l).replace(/ /g, ' ').trim();
+  }
+  function credLabel(text) {
+    // Up to two leading words, then the keyword: "Blurb Username", "WiFi Password".
+    text = text.replace(/\*\*/g, '');
+    var w = text.trim().replace(/\s+/g, ' ').split(' ');
+    if (!w[0] || w.length > 4 || CRED_SKIP.test(text)) return null;
+    for (var n = Math.min(3, w.length); n >= 1; n--) {
+      var k = w.slice(w.length - n).join(' ');
+      if (w.length - n > 2) continue;
+      if (CRED_USER.test(k)) return 'user';
+      if (CRED_MAIL.test(k)) return 'mail';
+      if (CRED_PASS.test(k)) return 'pass';
+    }
+    return null;
+  }
+  function credValue(kind, v) {
+    // Drop separators, then a bold or code wrapper around the whole value only;
+    // a * or _ inside a password stays.
+    v = v.replace(/^[\s|]+|[\s|]+$/g, '');
+    v = v.replace(/^\*\*(.+)\*\*$/, '$1').replace(/^`(.+)`$/, '$1').trim();
+    if (!v || v.length > 80) return '';
+    if (kind === 'pass' ? (v.match(/\s/g) || []).length > 1 : /\s/.test(v)) return '';
+    if (kind === 'mail' && v.indexOf('@') < 0) return '';
+    if (v.indexOf('***') >= 0) return '';  // a partial hint, not the full value
+    return v;
+  }
+  function findCreds(notes) {
+    var raw = String(notes || '').split('\n'), got = { user: [], mail: [], pass: [] };
+    // A line holding a web link is never a username or password.
+    var lines = raw.map(function (l) { return /\]\(|https?:\/\//i.test(l) ? '' : credPlain(l); });
+    var add = function (kind, v) { v = credValue(kind, v); if (v && got[kind].indexOf(v) < 0) got[kind].push(v); };
+    lines.forEach(function (l, i) {
+      if (!l || l.length > 120) return;
+      var row = /^\|\s*([^|]+?)\s*:?\s*\|\s*([^|]+?)\s*\|?$/.exec(l);
+      if (row) { var rk = credLabel(row[1]); if (rk) add(rk, row[2]); return; }
+      var m = /^[-•>\s]*(?:\*\*)?([A-Za-z][A-Za-z0-9 .&'-]*?)(?:\*\*)?\s*(?::|=|--|–|\s-\s)(?:\*\*)?\s*(\S.*)$/.exec(l);
+      if (m) { var k = credLabel(m[1]); if (k) add(k, m[2]); return; }
+      // "username  ron@x.com": a bare keyword, spaces, then a single value.
+      var sp = /^[-•>\s]*(?:\*\*)?([A-Za-z][A-Za-z -]*?)\s+(\S+?)(?:\*\*)?$/.exec(l);
+      if (sp && (CRED_USER.test(sp[1]) || CRED_MAIL.test(sp[1]) || CRED_PASS.test(sp[1]))) { add(credLabel(sp[1]), sp[2]); return; }
+      var alone = /^[-•>\s]*(?:\*\*)?([A-Za-z][A-Za-z0-9 .&'-]*?)(?:\*\*)?\s*:?(?:\*\*)?$/.exec(l);
+      if (alone) {
+        var ak = credLabel(alone[1]), next = '';
+        for (var j = i + 1; j < lines.length && !next; j++) next = lines[j];
+        if (ak && next && !credLabel(next.replace(/[:\s]+$/, '')) && !/^[A-Za-z][A-Za-z0-9 .&'-]*\s*(:|=|--)/.test(next)) add(ak, next);
+      }
+    });
+    var users = got.user.length ? got.user : got.mail;
+    return { username: users.length === 1 ? users[0] : '', password: got.pass.length === 1 ? got.pass[0] : '' };
+  }
+  function fillCreds(e) {
+    if (!e.notes || (e.username && e.password)) return null;
+    var f = findCreds(e.notes), c = {};
+    if (!e.username && f.username) c.username = f.username;
+    if (!e.password && f.password) c.password = f.password;
+    return (c.username || c.password) ? c : null;
+  }
+  function cleanup(flag, change, message) {
     return iget(flag).then(function (done) {
       if (done || !S.keys || S.blocked || S.offline || S.syncing || !S.lastSync) return;
       var fixed = 0, now = Date.now();
       S.entries.forEach(function (e, i) {
-        if (e.deleted || !e[field]) return;
-        var clean = fix(e[field]);
-        if (clean !== e[field]) { var c = {}; c[field] = clean; c.updatedAt = now; S.entries[i] = Object.assign({}, e, c); fixed++; }
+        if (e.deleted) return;
+        var c = change(e);
+        if (c) { c.updatedAt = now; S.entries[i] = Object.assign({}, e, c); fixed++; }
       });
       var finish = function () { return iset(flag, true); };
       if (!fixed) return finish();
       S.dirty = true; S.rev++;
       return saveLocal().then(finish).then(function () {
         renderList();
-        toast('Cleaned up ' + fixed + ' ' + noun + (fixed === 1 ? '.' : 's.'));
+        toast(message(fixed));
         return sync();
       });
     });
   }
+  function fieldFix(field, fix) {
+    return function (e) {
+      if (!e[field]) return null;
+      var clean = fix(e[field]);
+      if (clean === e[field]) return null;
+      var c = {}; c[field] = clean; return c;
+    };
+  }
+  function cleanedUp(noun) { return function (n) { return 'Cleaned up ' + n + ' ' + noun + (n === 1 ? '.' : 's.'); }; }
   function runCleanups() {
-    return cleanup('cleanup-usernames-v1', 'username', stripLinks, 'username')
-      .then(function () { return cleanup('cleanup-accounts-v1', 'account', trimAccount, 'account name'); })
-      .then(function () { return cleanup('cleanup-note-emails-v1', 'notes', cleanNoteEmails, 'note'); });
+    return cleanup('cleanup-usernames-v1', fieldFix('username', stripLinks), cleanedUp('username'))
+      .then(function () { return cleanup('cleanup-accounts-v1', fieldFix('account', trimAccount), cleanedUp('account name')); })
+      .then(function () { return cleanup('cleanup-note-emails-v1', fieldFix('notes', cleanNoteEmails), cleanedUp('note')); })
+      .then(function () {
+        if (IS_IOS) return;
+        return cleanup('cleanup-fill-creds-v1', fillCreds, function (n) { return 'Filled in ' + n + (n === 1 ? ' entry.' : ' entries.'); });
+      });
   }
 
   // ---------- Start ----------
