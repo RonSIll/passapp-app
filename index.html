@@ -1516,24 +1516,42 @@
   // Runs once per device, after a successful sync, so it starts from the
   // newest data; the first device to run it saves the fixes for both.
   function stripLinks(v) { return String(v || '').replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').trim(); }
-  function runCleanups() {
-    return iget('cleanup-usernames-v1').then(function (done) {
+  // Account names imported from note titles end in filler such as
+  // "Account Login" or "Password". Drop that run of words from the end, but
+  // keep a trailing copy number, date or split number (Ron, 2026-10-10).
+  // A name that would end up empty, or end in "and", "&" or a possessive,
+  // stays as it is.
+  var FILLER = '(?:account|login|log in|password|credentials|sign-in|username)';
+  var FILLER_RE = new RegExp('((?:\\s+(?:' + FILLER + '|portal))*\\s+' + FILLER + ')(\\s*\\([^)]*\\)|\\s+\\d+)?\\s*$', 'i');
+  function trimAccount(v) {
+    var s = String(v || ''), m = FILLER_RE.exec(s);
+    if (!m) return s;
+    var head = s.slice(0, m.index).replace(/[\s:,-]+$/, '');
+    if (!head || /(\sand|&|['’]s)$/i.test(head)) return s;
+    return head + (m[2] || '');
+  }
+  function cleanup(flag, field, fix, noun) {
+    return iget(flag).then(function (done) {
       if (done || !S.keys || S.blocked || S.offline || S.syncing || !S.lastSync) return;
       var fixed = 0, now = Date.now();
       S.entries.forEach(function (e, i) {
-        if (e.deleted || !e.username) return;
-        var clean = stripLinks(e.username);
-        if (clean !== e.username) { S.entries[i] = Object.assign({}, e, { username: clean, updatedAt: now }); fixed++; }
+        if (e.deleted || !e[field]) return;
+        var clean = fix(e[field]);
+        if (clean !== e[field]) { var c = {}; c[field] = clean; c.updatedAt = now; S.entries[i] = Object.assign({}, e, c); fixed++; }
       });
-      var finish = function () { return iset('cleanup-usernames-v1', true); };
+      var finish = function () { return iset(flag, true); };
       if (!fixed) return finish();
       S.dirty = true; S.rev++;
       return saveLocal().then(finish).then(function () {
         renderList();
-        toast('Cleaned up ' + fixed + (fixed === 1 ? ' username.' : ' usernames.'));
+        toast('Cleaned up ' + fixed + ' ' + noun + (fixed === 1 ? '.' : 's.'));
         return sync();
       });
     });
+  }
+  function runCleanups() {
+    return cleanup('cleanup-usernames-v1', 'username', stripLinks, 'username')
+      .then(function () { return cleanup('cleanup-accounts-v1', 'account', trimAccount, 'account name'); });
   }
 
   // ---------- Start ----------
