@@ -1111,7 +1111,13 @@
     var q = $('searchInput').value.trim().toLowerCase();
     $('searchClear').hidden = !q;
     var list = visibleEntries(), stack = $('entryStack');
-    var shown = q ? list.filter(function (e) { return e.account.toLowerCase().indexOf(q) >= 0; }) : list;
+    // Every space-separated word must appear in the account name, in any
+    // order (Ron, 2026-10-10).
+    var words = q.split(/\s+/);
+    var shown = q ? list.filter(function (e) {
+      var a = e.account.toLowerCase();
+      return words.every(function (w) { return a.indexOf(w) >= 0; });
+    }) : list;
     stack.innerHTML = '';
     var readOnly = S.blocked === 'keyreplaced';
     if (!list.length) {
